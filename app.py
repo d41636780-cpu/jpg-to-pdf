@@ -1,3 +1,4 @@
+from flask import Flask, render_template, request, send_file, Response
 import os
 import uuid
 import json
@@ -8,6 +9,7 @@ from flask import (
     render_template,
     request,
     send_file
+    
 )
 
 from PIL import Image
@@ -140,6 +142,80 @@ def cleanup_old_files():
 # =========================================================
 # HOME PAGE
 # =========================================================
+@app.route("/robots.txt")
+def robots():
+    return Response(
+        """User-agent: *
+Allow: /
+
+Sitemap: https://jpg-to-pdf-qefb.onrender.com/sitemap.xml
+""",
+        mimetype="text/plain"
+    )
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+
+    base_url = "https://jpg-to-pdf-qefb.onrender.com"
+
+    pages = [
+        "/",
+        "/jpg-to-pdf",
+        "/png-to-pdf",
+        "/image-to-pdf",
+        "/about",
+        "/contact",
+        "/privacy",
+        "/terms"
+    ]
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+
+    for page in pages:
+        xml += "  <url>\n"
+        xml += f"    <loc>{base_url}{page}</loc>\n"
+        xml += "  </url>\n"
+
+    xml += "</urlset>"
+
+    return Response(
+        xml,
+        mimetype="application/xml"
+    )
+
+
+@app.route("/png-to-pdf")
+def png_to_pdf():
+    return render_template("png-to-pdf.html")
+
+
+@app.route("/image-to-pdf")
+def image_to_pdf():
+    return render_template("image-to-pdf.html")
+
+@app.route("/jpg-to-pdf")
+def jpg_to_pdf():
+    return render_template("jpg-to-pdf.html")
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
+
 
 @app.route("/")
 def home():
