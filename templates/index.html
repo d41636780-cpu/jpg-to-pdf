@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        JPG to PDF Converter Online – Free, Fast & Easy
+    </title>
+
+    <meta
+        name="description"
+        content="Convert JPG, JPEG, PNG and WebP images to PDF online for free. Reorder, rotate and customize your images before downloading your PDF."
+    >
+
+    <meta
+        name="robots"
+        content="index, follow"
+    >
+
+    <meta
+        name="author"
+        content="JPG to PDF Converter"
+    >
+
+    <meta
+        name="theme-color"
+        content="#111111"
+    >
+
+    <link
+        rel="canonical"
+        href="{{ request.url_root }}"
+    >
+
+    <!-- Open Graph -->
+
+    <meta
+        property="og:type"
+        content="website"
+    >
+
+    <meta
+        property="og:title"
+        content="JPG to PDF Converter Online – Free"
+    >
+
+    <meta
+        property="og:description"
+        content="Free online JPG to PDF converter. Upload, reorder, rotate and convert your images into a PDF."
+    >
+
+    <meta
+        property="og:url"
+        content="{{ request.url }}"
+    >
+
+    <meta
+        property="og:site_name"
+        content="JPG to PDF Converter"
+    >
+
+    <!-- Twitter -->
+
+    <meta
+        name="twitter:card"
+        content="summary"
+    >
+
+    <meta
+        name="twitter:title"
+        content="JPG to PDF Converter Online – Free"
+    >
+
+    <meta
+        name="twitter:description"
+        content="Convert JPG images to PDF online for free with our fast and easy converter."
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <h1>
+        JPG to PDF Converter
+    </h1>
+
+    <p>
+        Convert your images to PDF quickly and easily.
+    </p>
+
+</header>
+
+
+<main class="main">
+
+
+    <!-- =========================
+         ERROR MESSAGE
+    ========================== -->
+
+    <div
+        id="errorMessage"
+        class="error-message"
+    >
+    </div>
+
+
+    <!-- =========================
+         CONVERTER FORM
+    ========================== -->
+
+    <form
+        id="convertForm"
+        action="/convert"
+        method="POST"
+        enctype="multipart/form-data"
+    >
+
+
+        <!-- =========================
+             UPLOAD
+        ========================== -->
+
+        <div
+            id="dropZone"
+            class="drop-zone"
+        >
+
+            <div class="upload-icon">
+                📄
+            </div>
+
+            <h2>
+                Drag & Drop your images here
+            </h2>
+
+            <p>
+                or
+            </p>
+
+            <label
+                for="imageInput"
+                class="select-button"
+            >
+                Choose Images
+            </label>
+
+            <input
+                type="file"
+                id="imageInput"
+                name="images"
+                accept=".jpg,.jpeg,.png,.webp"
+                multiple
+                hidden
+            >
+
+            <p class="file-info">
+                JPG, JPEG, PNG or WebP
+            </p>
+
+        </div>
+
+
+        <!-- =========================
+             ROTATION DATA
+        ========================== -->
+
+        <input
+            type="hidden"
+            id="rotationData"
+            name="rotations"
+            value="[]"
+        >
+
+
+        <!-- =========================
+             PREVIEW
+        ========================== -->
+
+        <div
+            id="previewSection"
+            class="preview-section"
+            style="display: none;"
+        >
+
+            <div class="preview-header">
+
+                <div>
+
+                    <h2>
+                        Your Images
+                    </h2>
+
+                    <p class="preview-help">
+                        Drag images to change their order
+                    </p>
+
+                </div>
+
+                <span id="imageCount">
+                    0 images
+                </span>
+
+            </div>
+
+
+            <div
+                id="previewContainer"
+                class="preview-container"
+            >
+            </div>
+
+
+            <!-- =========================
+                 PDF SETTINGS
+            ========================== -->
+
+            <div class="settings">
+
+                <h2>
+                    PDF Settings
+                </h2>
+
+
+                <div class="settings-grid">
+
+
+                    <!-- Page Size -->
+
+                    <div class="setting">
+
+                        <label for="pageSize">
+                            Page Size
+                        </label>
+
+                        <select
+                            id="pageSize"
+                            name="page_size"
+                        >
+
+                            <option value="a4">
+                                A4
+                            </option>
+
+                            <option value="letter">
+                                Letter
+                            </option>
+
+                            <option value="original">
+                                Original Image Size
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Orientation -->
+
+                    <div class="setting">
+
+                        <label for="orientation">
+                            Orientation
+                        </label>
+
+                        <select
+                            id="orientation"
+                            name="orientation"
+                        >
+
+                            <option value="portrait">
+                                Portrait
+                            </option>
+
+                            <option value="landscape">
+                                Landscape
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Quality -->
+
+                    <div class="setting">
+
+                        <label for="quality">
+                            Image Quality
+                        </label>
+
+                        <select
+                            id="quality"
+                            name="quality"
+                        >
+
+                            <option value="high">
+                                High Quality
+                            </option>
+
+                            <option value="medium">
+                                Medium
+                            </option>
+
+                            <option value="low">
+                                Low / Smaller File
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Page Numbers -->
+
+                    <div class="setting">
+
+                        <label for="pageNumbers">
+                            Page Numbers
+                        </label>
+
+                        <select
+                            id="pageNumbers"
+                            name="page_numbers"
+                        >
+
+                            <option value="yes">
+                                Show Page Numbers
+                            </option>
+
+                            <option value="no">
+                                Hide Page Numbers
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                </div>
+
+
+                <p class="settings-help">
+
+                    You can rotate and reorder images
+                    before creating the PDF.
+
+                </p>
+
+            </div>
+
+
+            <!-- =========================
+                 CONVERT BUTTON
+            ========================== -->
+
+            <button
+                type="submit"
+                id="convertButton"
+                class="convert-button"
+            >
+
+                <span id="buttonText">
+                    Convert to PDF
+                </span>
+
+                <span
+                    id="loadingText"
+                    style="display: none;"
+                >
+                    ⏳ Converting...
+                </span>
+
+            </button>
+
+
+            <!-- =========================
+                 PDF RESULT
+            ========================== -->
+
+            <div
+                id="downloadSection"
+                class="result-card"
+                style="display: none;"
+            >
+
+                <div class="success-icon">
+                    ✓
+                </div>
+
+                <h2>
+                    PDF Ready!
+                </h2>
+
+                <p id="resultMessage">
+                    Your PDF has been created successfully.
+                </p>
+
+                <div class="result-buttons">
+
+                    <a
+                        id="downloadButton"
+                        class="download-button"
+                        href="#"
+                    >
+                        ⬇ Download PDF
+                    </a>
+
+                    <a
+                        href="/"
+                        id="convertAnotherButton"
+                        class="secondary-button"
+                    >
+                        🔄 Convert Another
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 CLEAR
+            ========================== -->
+
+            <button
+                type="button"
+                id="clearButton"
+                class="clear-button"
+            >
+                Clear All
+            </button>
+
+
+        </div>
+
+    </form>
+
+
+    <!-- =========================
+         INFORMATION
+    ========================== -->
+
+    <section class="info-section">
+
+        <h2>
+            How to convert JPG to PDF?
+        </h2>
+
+
+        <div class="steps">
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    1
+                </div>
+
+                <h3>
+                    Upload
+                </h3>
+
+                <p>
+                    Select or drag your images
+                    into the upload area.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    2
+                </div>
+
+                <h3>
+                    Organize
+                </h3>
+
+                <p>
+                    Reorder, rotate or remove
+                    images as needed.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    3
+                </div>
+
+                <h3>
+                    Convert
+                </h3>
+
+                <p>
+                    Choose your settings and
+                    download your PDF.
+                </p>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+<!-- =====================================================
+     SEO FAQ
+===================================================== -->
+
+<section class="faq-section">
+
+    <h2>
+        Frequently Asked Questions
+    </h2>
+
+    <div class="faq-list">
+
+        <details class="faq-item">
+
+            <summary>
+                How can I convert JPG to PDF?
+            </summary>
+
+            <p>
+                Upload your JPG, JPEG, PNG or WebP images,
+                arrange them in the order you want, choose
+                your PDF settings and click Convert to PDF.
+                Your PDF will then be ready to download.
+            </p>
+
+        </details>
+
+
+        <details class="faq-item">
+
+            <summary>
+                Is this JPG to PDF converter free?
+            </summary>
+
+            <p>
+                Yes. You can use the JPG to PDF converter
+                to create PDF files from your images without
+                installing desktop software.
+            </p>
+
+        </details>
+
+
+        <details class="faq-item">
+
+            <summary>
+                Can I convert multiple JPG images into one PDF?
+            </summary>
+
+            <p>
+                Yes. You can upload multiple images and
+                combine them into a single PDF document.
+                You can also reorder the images before
+                conversion.
+            </p>
+
+        </details>
+
+
+        <details class="faq-item">
+
+            <summary>
+                Can I rotate images before converting them?
+            </summary>
+
+            <p>
+                Yes. Rotate individual images before creating
+                the PDF. You can also reorder or remove images
+                from the preview area.
+            </p>
+
+        </details>
+
+
+        <details class="faq-item">
+
+            <summary>
+                Can I choose the PDF page size?
+            </summary>
+
+            <p>
+                Yes. You can choose A4, Letter or the original
+                image size. Portrait and landscape orientation
+                options are also available.
+            </p>
+
+        </details>
+
+
+        <details class="faq-item">
+
+            <summary>
+                Can I reduce the PDF file size?
+            </summary>
+
+            <p>
+                Yes. The image quality setting provides
+                high, medium and lower-quality options.
+                Choosing a lower quality can help create
+                a smaller PDF.
+            </p>
+
+        </details>
+
+
+        <details class="faq-item">
+
+            <summary>
+                Can I add page numbers to the PDF?
+            </summary>
+
+            <p>
+                Yes. You can choose whether page numbers
+                should be displayed on the PDF pages before
+                conversion.
+            </p>
+
+        </details>
+
+
+        <details class="faq-item">
+
+            <summary>
+                Do I need to install software?
+            </summary>
+
+            <p>
+                No. The converter works through your web
+                browser, so you do not need a separate
+                desktop application for the conversion.
+            </p>
+
+        </details>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     FAQ STRUCTURED DATA
+===================================================== -->
+
+<script type="application/ld+json">
+
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+
+    "mainEntity": [
+
+        {
+            "@type": "Question",
+            "name": "How can I convert JPG to PDF?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Upload your JPG, JPEG, PNG or WebP images, arrange them, choose your PDF settings and click Convert to PDF."
+            }
+        },
+
+        {
+            "@type": "Question",
+            "name": "Is this JPG to PDF converter free?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. You can use the JPG to PDF converter to create PDF files from your images without installing desktop software."
+            }
+        },
+
+        {
+            "@type": "Question",
+            "name": "Can I convert multiple JPG images into one PDF?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. You can upload multiple images and combine them into a single PDF document."
+            }
+        },
+
+        {
+            "@type": "Question",
+            "name": "Can I rotate images before converting them?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. You can rotate individual images before creating the PDF."
+            }
+        },
+
+        {
+            "@type": "Question",
+            "name": "Can I choose the PDF page size?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. You can choose A4, Letter or the original image size and select portrait or landscape orientation."
+            }
+        },
+
+        {
+            "@type": "Question",
+            "name": "Can I reduce the PDF file size?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. The converter provides different image quality options that can help create a smaller PDF."
+            }
+        },
+
+        {
+            "@type": "Question",
+            "name": "Can I add page numbers to the PDF?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. You can choose whether page numbers should be displayed on the PDF pages."
+            }
+        },
+
+        {
+            "@type": "Question",
+            "name": "Do I need to install software?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. The converter works through your web browser."
+            }
+        }
+
+    ]
+}
+
+</script>
+
+
+</main>
+
+
+<!-- =========================
+     LOADING OVERLAY
+========================== -->
+
+<div
+    id="loadingOverlay"
+    class="loading-overlay"
+    style="display: none;"
+>
+
+    <div class="loading-box">
+
+        <div class="spinner"></div>
+
+        <h2>
+            Creating your PDF...
+        </h2>
+
+        <p id="progressMessage">
+            Preparing your images...
+        </p>
+
+        <div class="progress-container">
+
+            <div
+                id="progressBar"
+                class="progress-bar"
+            >
+
+                <span id="progressPercent">
+                    0%
+                </span>
+
+            </div>
+
+        </div>
+
+        <p
+            id="progressStatus"
+            class="progress-status"
+        >
+            Starting...
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     FOOTER
+========================== -->
+
+<footer>
+
+    <p>
+        JPG to PDF Converter
+    </p>
+
+</footer>
+
+
+<!-- LOAD JAVASCRIPT ONLY ONCE -->
+
+<script
+    src="{{ url_for('static', filename='script.js') }}">
+</script>
+
+
+</body>
+
+</html>
+
