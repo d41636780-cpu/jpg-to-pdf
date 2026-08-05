@@ -7,84 +7,76 @@
 
     <title>PDF Compressor Online - Reduce PDF Size</title>
 
-    <meta name="description"
-        content="Compress PDF files online and reduce their size to your desired KB or MB target. Fast, simple and free.">
-
+    <meta name="description" content="Compress PDF files online and reduce their size to your desired KB or MB target. Fast, simple and free.">
     <meta name="robots" content="index, follow">
-
-    <link rel="canonical"
-        href="https://jpg-to-pdf-qefb.onrender.com/pdf-compressor">
+    <link rel="canonical" href="https://jpg-to-pdf-qefb.onrender.com/pdf-compressor">
 
     <style>
-
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-
-<nav class="site-nav">
-    <div class="nav-inner">
-
-        <a href="/" class="brand">
-            PDF Tools
-        </a>
-
-        <div class="nav-links">
-
-            <a href="/">Home</a>
-
-            <a href="/jpg-to-pdf">
-                JPG to PDF
-            </a>
-
-            <a href="/png-to-pdf">
-                PNG to PDF
-            </a>
-
-            <a href="/image-to-pdf">
-                Image to PDF
-            </a>
-
-            <a href="/pdf-to-jpg">
-                PDF to JPG
-            </a>
-
-            <a href="/pdf-compressor">
-                PDF Compressor
-            </a>
-
-            <a href="/pdf-merger">
-                PDF Merger
-            </a>
-
-            <a href="/pdf-splitter">
-                PDF Splitter
-            </a>
-
-        </div>
-
-    </div>
-</nav>
-
-
-
             margin: 0;
-            font-family:
-                Inter,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-            background:
-                linear-gradient(
-                    180deg,
-                    #f7f9fc 0%,
-                    #eef3f9 100%
-                );
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(180deg, #f7f9fc 0%, #eef3f9 100%);
             color: #172033;
             min-height: 100vh;
+        }
+
+        .site-nav {
+            background: #ffffff;
+            padding: 12px 24px;
+            border-bottom: 1px solid #e8edf4;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 800;
+            color: #2563eb;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .brand:hover {
+            color: #1d4ed8;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+        }
+
+        .nav-links a {
+            color: #475569;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px 0;
+            border-bottom: 2px solid transparent;
+            transition: 0.15s ease;
+        }
+
+        .nav-links a:hover {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
         }
 
         .container {
@@ -96,13 +88,11 @@
             background: #ffffff;
             border-radius: 28px;
             padding: 38px;
-            box-shadow:
-                0 20px 60px rgba(15, 23, 42, 0.10);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
             border: 1px solid #e8edf4;
         }
 
         /* HEADER */
-
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -136,7 +126,6 @@
         }
 
         /* UPLOAD */
-
         .upload-box {
             display: block;
             border: 2px dashed #cbd5e1;
@@ -193,7 +182,6 @@
         }
 
         /* FILE */
-
         .file-info {
             display: none;
             margin-top: 18px;
@@ -237,7 +225,6 @@
         }
 
         /* TARGET */
-
         .target-section {
             margin-top: 25px;
             padding: 22px;
@@ -271,8 +258,7 @@
         .target-input:focus,
         .target-unit:focus {
             border-color: #2563eb;
-            box-shadow:
-                0 0 0 3px rgba(37, 99, 235, 0.10);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
         }
 
         .target-unit {
@@ -301,6 +287,7 @@
             cursor: pointer;
             font-size: 13px;
             font-weight: 650;
+            transition: 0.15s ease;
         }
 
         .quick-btn:hover {
@@ -317,7 +304,6 @@
         }
 
         /* BUTTON */
-
         .compress-btn {
             width: 100%;
             margin-top: 22px;
@@ -330,8 +316,7 @@
             font-weight: 750;
             cursor: pointer;
             transition: 0.2s ease;
-            box-shadow:
-                0 8px 20px rgba(37, 99, 235, 0.22);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
         }
 
         .compress-btn:hover:not(:disabled) {
@@ -346,7 +331,6 @@
         }
 
         /* LOADING */
-
         .loading {
             display: none;
             margin-top: 22px;
@@ -375,7 +359,6 @@
         }
 
         /* ERROR */
-
         .error {
             display: none;
             margin-top: 20px;
@@ -389,7 +372,6 @@
         }
 
         /* RESULT */
-
         .result {
             display: none;
             margin-top: 28px;
@@ -429,8 +411,7 @@
 
         .stats {
             display: grid;
-            grid-template-columns:
-                repeat(3, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
             margin: 22px 0;
         }
@@ -455,6 +436,14 @@
             font-weight: 800;
         }
 
+        .stat-value.success {
+            color: #16a34a;
+        }
+
+        .stat-value.warning {
+            color: #eab308;
+        }
+
         .download-btn {
             display: block;
             width: 100%;
@@ -465,6 +454,7 @@
             text-decoration: none;
             text-align: center;
             font-weight: 750;
+            transition: 0.2s ease;
         }
 
         .download-btn:hover {
@@ -481,6 +471,7 @@
             color: #334155;
             cursor: pointer;
             font-weight: 700;
+            transition: 0.2s ease;
         }
 
         .new-btn:hover {
@@ -488,12 +479,10 @@
         }
 
         /* INFO */
-
         .info {
             margin-top: 30px;
             display: grid;
-            grid-template-columns:
-                repeat(3, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
         }
 
@@ -521,10 +510,78 @@
             line-height: 1.5;
         }
 
+        /* FOOTER */
+        .site-footer {
+            margin-top: 60px;
+            padding: 40px 24px 20px;
+            background: #ffffff;
+            border-top: 1px solid #e8edf4;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 40px;
+        }
+
+        .footer-brand h3 {
+            margin: 0 0 8px;
+            color: #172033;
+        }
+
+        .footer-brand p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 320px;
+        }
+
+        .footer-links h4 {
+            margin: 0 0 10px;
+            font-size: 14px;
+            color: #172033;
+        }
+
+        .footer-links a {
+            display: block;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 4px 0;
+            transition: 0.15s ease;
+        }
+
+        .footer-links a:hover {
+            color: #2563eb;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 30px auto 0;
+            padding-top: 20px;
+            border-top: 1px solid #e8edf4;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
         /* MOBILE */
+        @media (max-width: 768px) {
+            .nav-inner {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .nav-links {
+                justify-content: center;
+            }
+        }
 
         @media (max-width: 700px) {
-
             .container {
                 width: 94%;
                 margin: 20px auto;
@@ -552,10 +609,13 @@
                 grid-template-columns: 1fr;
             }
 
+            .footer-container {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
         }
 
         @media (max-width: 480px) {
-
             .target-row {
                 flex-direction: column;
             }
@@ -572,866 +632,381 @@
                 flex: 1;
             }
 
-        }
+            .nav-links {
+                gap: 4px 10px;
+            }
 
+            .nav-links a {
+                font-size: 12px;
+            }
+        }
     </style>
 
 </head>
 
 <body>
 
-<div class="container">
-
-    <div class="card">
-
-        <!-- HEADER -->
-
-        <div class="header">
-
-            <div class="badge">
-                ⚡ Fast PDF Tool
+    <!-- NAVIGATION -->
+    <nav class="site-nav">
+        <div class="nav-inner">
+            <a href="/" class="brand">PDF Tools</a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/jpg-to-pdf">JPG to PDF</a>
+                <a href="/png-to-pdf">PNG to PDF</a>
+                <a href="/image-to-pdf">Image to PDF</a>
+                <a href="/pdf-to-jpg">PDF to JPG</a>
+                <a href="/pdf-compressor">PDF Compressor</a>
+                <a href="/pdf-merger">PDF Merger</a>
+                <a href="/pdf-splitter">PDF Splitter</a>
             </div>
-
-            <h1>
-                Compress PDF
-            </h1>
-
-            <p class="subtitle">
-                Reduce your PDF size to your desired
-                KB or MB while keeping the document
-                as clear as possible.
-            </p>
-
         </div>
+    </nav>
 
+    <div class="container">
 
-        <!-- UPLOAD -->
+        <div class="card">
 
-        <label
-            class="upload-box"
-            id="uploadBox"
-            for="pdfInput"
-        >
-
-            <div class="upload-icon">
-                📄
+            <!-- HEADER -->
+            <div class="header">
+                <div class="badge">⚡ Fast PDF Tool</div>
+                <h1>Compress PDF</h1>
+                <p class="subtitle">
+                    Reduce your PDF size to your desired KB or MB while keeping the document as clear as possible.
+                </p>
             </div>
 
-            <div class="upload-text">
-                Drop your PDF here
-            </div>
+            <!-- UPLOAD -->
+            <label class="upload-box" id="uploadBox" for="pdfInput">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Drop your PDF here</div>
+                <div class="upload-subtext">or click to choose a PDF file</div>
+                <div class="upload-limit">Maximum file size: 50 MB</div>
+            </label>
 
-            <div class="upload-subtext">
-                or click to choose a PDF file
-            </div>
+            <input type="file" id="pdfInput" accept=".pdf,application/pdf">
 
-            <div class="upload-limit">
-                Maximum file size: 50 MB
-            </div>
-
-        </label>
-
-        <input
-            type="file"
-            id="pdfInput"
-            accept=".pdf,application/pdf"
-        >
-
-
-        <!-- FILE INFO -->
-
-        <div
-            class="file-info"
-            id="fileInfo"
-        >
-
-            <div class="file-row">
-
-                <div class="file-icon">
-                    📕
-                </div>
-
-                <div class="file-details">
-
-                    <div
-                        class="file-name"
-                        id="fileName"
-                    ></div>
-
-                    <div
-                        class="file-size"
-                        id="fileSize"
-                    ></div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- TARGET -->
-
-        <div class="target-section">
-
-            <div class="section-title">
-                🎯 Target file size
-            </div>
-
-            <div class="target-row">
-
-                <input
-                    type="number"
-                    id="targetValue"
-                    class="target-input"
-                    min="50"
-                    step="1"
-                    value="500"
-                    placeholder="Enter target size"
-                >
-
-                <select
-                    id="targetUnit"
-                    class="target-unit"
-                >
-
-                    <option value="KB">
-                        KB
-                    </option>
-
-                    <option value="MB">
-                        MB
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div class="quick-targets">
-
-                <button
-                    type="button"
-                    class="quick-btn"
-                    data-value="200"
-                    data-unit="KB"
-                >
-                    200 KB
-                </button>
-
-                <button
-                    type="button"
-                    class="quick-btn"
-                    data-value="500"
-                    data-unit="KB"
-                >
-                    500 KB
-                </button>
-
-                <button
-                    type="button"
-                    class="quick-btn"
-                    data-value="1"
-                    data-unit="MB"
-                >
-                    1 MB
-                </button>
-
-                <button
-                    type="button"
-                    class="quick-btn"
-                    data-value="2"
-                    data-unit="MB"
-                >
-                    2 MB
-                </button>
-
-            </div>
-
-            <div class="target-help">
-                Choose the maximum size you want
-                the compressed PDF to reach.
-            </div>
-
-        </div>
-
-
-        <!-- COMPRESS -->
-
-        <button
-            class="compress-btn"
-            id="compressBtn"
-            disabled
-        >
-            Compress PDF
-        </button>
-
-
-        <!-- LOADING -->
-
-        <div
-            class="loading"
-            id="loading"
-        >
-
-            <div class="spinner"></div>
-
-            Compressing your PDF...
-            <br>
-
-            <small>
-                This may take a little while for large PDFs.
-            </small>
-
-        </div>
-
-
-        <!-- ERROR -->
-
-        <div
-            class="error"
-            id="error"
-        ></div>
-
-
-        <!-- RESULT -->
-
-        <div
-            class="result"
-            id="result"
-        >
-
-            <div class="result-header">
-
-                <div class="success-icon">
-                    ✓
-                </div>
-
-                <div>
-
-                    <h2>
-                        Compression complete
-                    </h2>
-
-                    <div
-                        class="result-message"
-                        id="resultMessage"
-                    >
+            <!-- FILE INFO -->
+            <div class="file-info" id="fileInfo">
+                <div class="file-row">
+                    <div class="file-icon">📕</div>
+                    <div class="file-details">
+                        <div class="file-name" id="fileName"></div>
+                        <div class="file-size" id="fileSize"></div>
                     </div>
-
                 </div>
-
             </div>
 
+            <!-- TARGET -->
+            <div class="target-section">
+                <div class="section-title">🎯 Target file size</div>
 
-            <div class="stats">
-
-                <div class="stat">
-
-                    <div class="stat-title">
-                        Original
-                    </div>
-
-                    <div
-                        class="stat-value"
-                        id="originalSize"
-                    >
-                        -
-                    </div>
-
+                <div class="target-row">
+                    <input type="number" id="targetValue" class="target-input" min="50" step="1" value="500" placeholder="Enter target size">
+                    <select id="targetUnit" class="target-unit">
+                        <option value="KB">KB</option>
+                        <option value="MB">MB</option>
+                    </select>
                 </div>
 
-
-                <div class="stat">
-
-                    <div class="stat-title">
-                        Compressed
-                    </div>
-
-                    <div
-                        class="stat-value"
-                        id="compressedSize"
-                    >
-                        -
-                    </div>
-
+                <div class="quick-targets">
+                    <button type="button" class="quick-btn" data-value="200" data-unit="KB">200 KB</button>
+                    <button type="button" class="quick-btn" data-value="500" data-unit="KB">500 KB</button>
+                    <button type="button" class="quick-btn" data-value="1" data-unit="MB">1 MB</button>
+                    <button type="button" class="quick-btn" data-value="2" data-unit="MB">2 MB</button>
                 </div>
 
-
-                <div class="stat">
-
-                    <div class="stat-title">
-                        Saved
-                    </div>
-
-                    <div
-                        class="stat-value"
-                        id="reduction"
-                    >
-                        -
-                    </div>
-
+                <div class="target-help">
+                    Choose the maximum size you want the compressed PDF to reach.
                 </div>
-
             </div>
 
+            <!-- COMPRESS -->
+            <button class="compress-btn" id="compressBtn" disabled>Compress PDF</button>
 
-            <a
-                href="#"
-                class="download-btn"
-                id="downloadBtn"
-            >
-                Download Compressed PDF
-            </a>
-
-            <button
-                class="new-btn"
-                id="newBtn"
-            >
-                Compress Another PDF
-            </button>
-
-        </div>
-
-
-        <!-- FEATURES -->
-
-        <div class="info">
-
-            <div class="info-item">
-
-                <div class="info-icon">
-                    🎯
-                </div>
-
-                <div class="info-title">
-                    Target Size
-                </div>
-
-                <div class="info-text">
-                    Select the KB or MB size
-                    you want to achieve.
-                </div>
-
+            <!-- LOADING -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                Compressing your PDF...<br>
+                <small>This may take a little while for large PDFs.</small>
             </div>
 
+            <!-- ERROR -->
+            <div class="error" id="error"></div>
 
-            <div class="info-item">
-
-                <div class="info-icon">
-                    🔒
+            <!-- RESULT -->
+            <div class="result" id="result">
+                <div class="result-header">
+                    <div class="success-icon">✓</div>
+                    <div>
+                        <h2>Compression complete</h2>
+                        <div class="result-message" id="resultMessage"></div>
+                    </div>
                 </div>
 
-                <div class="info-title">
-                    Simple & Private
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-title">Original</div>
+                        <div class="stat-value" id="originalSize">-</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Compressed</div>
+                        <div class="stat-value" id="compressedSize">-</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Saved</div>
+                        <div class="stat-value" id="reduction">-</div>
+                    </div>
                 </div>
 
-                <div class="info-text">
-                    Files are processed temporarily
-                    for compression.
-                </div>
-
+                <a href="#" class="download-btn" id="downloadBtn">Download Compressed PDF</a>
+                <button class="new-btn" id="newBtn">Compress Another PDF</button>
             </div>
 
-
-            <div class="info-item">
-
-                <div class="info-icon">
-                    ⚡
+            <!-- FEATURES -->
+            <div class="info">
+                <div class="info-item">
+                    <div class="info-icon">🎯</div>
+                    <div class="info-title">Target Size</div>
+                    <div class="info-text">Select the KB or MB size you want to achieve.</div>
                 </div>
-
-                <div class="info-title">
-                    Easy Download
+                <div class="info-item">
+                    <div class="info-icon">🔒</div>
+                    <div class="info-title">Simple & Private</div>
+                    <div class="info-text">Files are processed temporarily for compression.</div>
                 </div>
-
-                <div class="info-text">
-                    Download your compressed PDF
-                    immediately after processing.
+                <div class="info-item">
+                    <div class="info-icon">⚡</div>
+                    <div class="info-title">Easy Download</div>
+                    <div class="info-text">Download your compressed PDF immediately after processing.</div>
                 </div>
-
             </div>
 
         </div>
 
     </div>
 
-</div>
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <h3>PDF Compressor</h3>
+                <p>Compress PDF files online and reduce their size to your desired KB or MB target. Fast, simple and free.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Information</h4>
+                <a href="/about">About</a>
+                <a href="/contact">Contact</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms of Service</a>
+            </div>
+            <div class="footer-links">
+                <h4>Tools</h4>
+                <a href="/jpg-to-pdf">JPG to PDF</a>
+                <a href="/pdf-to-jpg">PDF to JPG</a>
+                <a href="/pdf-compressor">PDF Compressor</a>
+                <a href="/pdf-merger">PDF Merger</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 PDF Compressor. All rights reserved.</p>
+        </div>
+    </footer>
 
+    <script>
+        const pdfInput = document.getElementById("pdfInput");
+        const uploadBox = document.getElementById("uploadBox");
+        const fileInfo = document.getElementById("fileInfo");
+        const fileName = document.getElementById("fileName");
+        const fileSize = document.getElementById("fileSize");
+        const targetValue = document.getElementById("targetValue");
+        const targetUnit = document.getElementById("targetUnit");
+        const compressBtn = document.getElementById("compressBtn");
+        const loading = document.getElementById("loading");
+        const errorBox = document.getElementById("error");
+        const result = document.getElementById("result");
+        const originalSize = document.getElementById("originalSize");
+        const compressedSize = document.getElementById("compressedSize");
+        const reduction = document.getElementById("reduction");
+        const resultMessage = document.getElementById("resultMessage");
+        const downloadBtn = document.getElementById("downloadBtn");
+        const newBtn = document.getElementById("newBtn");
 
-<script>
+        let selectedFile = null;
 
-    const pdfInput =
-        document.getElementById("pdfInput");
-
-    const uploadBox =
-        document.getElementById("uploadBox");
-
-    const fileInfo =
-        document.getElementById("fileInfo");
-
-    const fileName =
-        document.getElementById("fileName");
-
-    const fileSize =
-        document.getElementById("fileSize");
-
-    const targetValue =
-        document.getElementById("targetValue");
-
-    const targetUnit =
-        document.getElementById("targetUnit");
-
-    const compressBtn =
-        document.getElementById("compressBtn");
-
-    const loading =
-        document.getElementById("loading");
-
-    const errorBox =
-        document.getElementById("error");
-
-    const result =
-        document.getElementById("result");
-
-    const originalSize =
-        document.getElementById("originalSize");
-
-    const compressedSize =
-        document.getElementById("compressedSize");
-
-    const reduction =
-        document.getElementById("reduction");
-
-    const resultMessage =
-        document.getElementById("resultMessage");
-
-    const downloadBtn =
-        document.getElementById("downloadBtn");
-
-    const newBtn =
-        document.getElementById("newBtn");
-
-
-    let selectedFile = null;
-
-
-    function formatSize(bytes) {
-
-        if (bytes < 1024) {
-
-            return bytes + " B";
-
+        function formatSize(bytes) {
+            if (bytes < 1024) {
+                return bytes + " B";
+            }
+            if (bytes < 1024 * 1024) {
+                return (bytes / 1024).toFixed(1) + " KB";
+            }
+            return (bytes / (1024 * 1024)).toFixed(2) + " MB";
         }
 
-        if (bytes < 1024 * 1024) {
-
-            return (
-                (bytes / 1024).toFixed(1)
-                + " KB"
-            );
-
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.style.display = "block";
         }
 
-        return (
-            (bytes / (1024 * 1024)).toFixed(2)
-            + " MB"
-        );
-    }
+        function hideError() {
+            errorBox.style.display = "none";
+        }
 
+        function updateButton() {
+            const value = parseFloat(targetValue.value);
+            compressBtn.disabled = !selectedFile || !value || value <= 0;
+        }
 
-    function showError(message) {
-
-        errorBox.textContent = message;
-
-        errorBox.style.display = "block";
-
-    }
-
-
-    function hideError() {
-
-        errorBox.style.display = "none";
-
-    }
-
-
-    function updateButton() {
-
-        const value =
-            parseFloat(
-                targetValue.value
-            );
-
-        compressBtn.disabled =
-            !selectedFile ||
-            !value ||
-            value <= 0;
-
-    }
-
-
-    pdfInput.addEventListener(
-        "change",
-        function () {
-
+        pdfInput.addEventListener("change", function() {
             if (!this.files.length) {
-
                 return;
-
             }
 
-            selectedFile =
-                this.files[0];
+            selectedFile = this.files[0];
 
-            if (
-                !selectedFile.name
-                    .toLowerCase()
-                    .endsWith(".pdf")
-            ) {
-
-                showError(
-                    "Please select a PDF file."
-                );
-
+            if (!selectedFile.name.toLowerCase().endsWith(".pdf")) {
+                showError("Please select a PDF file.");
                 selectedFile = null;
-
                 updateButton();
-
                 return;
             }
 
             hideError();
-
-            fileName.textContent =
-                selectedFile.name;
-
-            fileSize.textContent =
-                formatSize(
-                    selectedFile.size
-                );
-
-            fileInfo.style.display =
-                "block";
-
-            result.style.display =
-                "none";
-
+            fileName.textContent = selectedFile.name;
+            fileSize.textContent = formatSize(selectedFile.size);
+            fileInfo.style.display = "block";
+            result.style.display = "none";
             updateButton();
+        });
 
-        }
-    );
+        targetValue.addEventListener("input", updateButton);
+        targetUnit.addEventListener("change", updateButton);
 
+        // QUICK TARGET BUTTONS
+        document.querySelectorAll(".quick-btn").forEach(function(button) {
+            button.addEventListener("click", function() {
+                targetValue.value = this.dataset.value;
+                targetUnit.value = this.dataset.unit;
+                updateButton();
+            });
+        });
 
-    targetValue.addEventListener(
-        "input",
-        updateButton
-    );
+        // DRAG & DROP
+        ["dragenter", "dragover"].forEach(function(eventName) {
+            uploadBox.addEventListener(eventName, function(event) {
+                event.preventDefault();
+                uploadBox.classList.add("dragging");
+            });
+        });
 
+        ["dragleave", "drop"].forEach(function(eventName) {
+            uploadBox.addEventListener(eventName, function(event) {
+                event.preventDefault();
+                uploadBox.classList.remove("dragging");
+            });
+        });
 
-    targetUnit.addEventListener(
-        "change",
-        updateButton
-    );
-
-
-    /* QUICK TARGET BUTTONS */
-
-    document
-        .querySelectorAll(".quick-btn")
-        .forEach(
-            function (button) {
-
-                button.addEventListener(
-                    "click",
-                    function () {
-
-                        targetValue.value =
-                            this.dataset.value;
-
-                        targetUnit.value =
-                            this.dataset.unit;
-
-                        updateButton();
-
-                    }
-                );
-
-            }
-        );
-
-
-    /* DRAG & DROP */
-
-    [
-        "dragenter",
-        "dragover"
-    ].forEach(
-        function (eventName) {
-
-            uploadBox.addEventListener(
-                eventName,
-                function (event) {
-
-                    event.preventDefault();
-
-                    uploadBox.classList.add(
-                        "dragging"
-                    );
-
-                }
-            );
-
-        }
-    );
-
-
-    [
-        "dragleave",
-        "drop"
-    ].forEach(
-        function (eventName) {
-
-            uploadBox.addEventListener(
-                eventName,
-                function (event) {
-
-                    event.preventDefault();
-
-                    uploadBox.classList.remove(
-                        "dragging"
-                    );
-
-                }
-            );
-
-        }
-    );
-
-
-    uploadBox.addEventListener(
-        "drop",
-        function (event) {
-
-            const files =
-                event.dataTransfer.files;
-
+        uploadBox.addEventListener("drop", function(event) {
+            const files = event.dataTransfer.files;
             if (!files.length) {
-
                 return;
-
             }
 
-            const file =
-                files[0];
+            const file = files[0];
 
-            if (
-                !file.name
-                    .toLowerCase()
-                    .endsWith(".pdf")
-            ) {
-
-                showError(
-                    "Please drop a PDF file."
-                );
-
+            if (!file.name.toLowerCase().endsWith(".pdf")) {
+                showError("Please drop a PDF file.");
                 return;
             }
 
             selectedFile = file;
-
-            fileName.textContent =
-                file.name;
-
-            fileSize.textContent =
-                formatSize(
-                    file.size
-                );
-
-            fileInfo.style.display =
-                "block";
-
+            fileName.textContent = file.name;
+            fileSize.textContent = formatSize(file.size);
+            fileInfo.style.display = "block";
             hideError();
-
             updateButton();
+        });
 
-        }
-    );
-
-
-    /* COMPRESS */
-
-    compressBtn.addEventListener(
-        "click",
-        async function () {
-
+        // COMPRESS
+        compressBtn.addEventListener("click", async function() {
             if (!selectedFile) {
-
                 return;
-
             }
 
             hideError();
+            result.style.display = "none";
+            compressBtn.disabled = true;
+            loading.style.display = "block";
 
-            result.style.display =
-                "none";
-
-            compressBtn.disabled =
-                true;
-
-            loading.style.display =
-                "block";
-
-
-            const formData =
-                new FormData();
-
-            formData.append(
-                "pdf",
-                selectedFile
-            );
-
-            formData.append(
-                "target_value",
-                targetValue.value
-            );
-
-            formData.append(
-                "target_unit",
-                targetUnit.value
-            );
-
+            const formData = new FormData();
+            formData.append("pdf", selectedFile);
+            formData.append("target_value", targetValue.value);
+            formData.append("target_unit", targetUnit.value);
 
             try {
+                const response = await fetch("/compress-pdf", {
+                    method: "POST",
+                    body: formData
+                });
 
-                const response =
-                    await fetch(
-                        "/compress-pdf",
-                        {
-                            method: "POST",
-                            body: formData
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
+                const data = await response.json();
 
                 if (!response.ok) {
-
-                    throw new Error(
-                        data.error ||
-                        "Compression failed."
-                    );
-
+                    throw new Error(data.error || "Compression failed.");
                 }
-
 
                 if (!data.success) {
-
-                    throw new Error(
-                        data.error ||
-                        "Compression failed."
-                    );
-
+                    throw new Error(data.error || "Compression failed.");
                 }
 
+                originalSize.textContent = formatSize(data.original_size);
+                compressedSize.textContent = formatSize(data.compressed_size);
+                reduction.textContent = data.reduction + "%";
 
-                originalSize.textContent =
-                    formatSize(
-                        data.original_size
-                    );
+                // Color the reduction based on success
+                if (data.target_achieved) {
+                    reduction.className = "stat-value success";
+                } else {
+                    reduction.className = "stat-value warning";
+                }
 
-
-                compressedSize.textContent =
-                    formatSize(
-                        data.compressed_size
-                    );
-
-
-                reduction.textContent =
-                    data.reduction + "%";
-
-
-                resultMessage.textContent =
-                    data.message ||
-                    "Your PDF has been compressed.";
-
-
-                downloadBtn.href =
-                    data.download_url;
-
-
-                result.style.display =
-                    "block";
-
+                resultMessage.textContent = data.message || "Your PDF has been compressed.";
+                downloadBtn.href = data.download_url;
+                result.style.display = "block";
 
                 result.scrollIntoView({
                     behavior: "smooth",
                     block: "nearest"
                 });
 
-
             } catch (error) {
-
-                showError(
-                    error.message ||
-                    "Something went wrong."
-                );
-
+                showError(error.message || "Something went wrong.");
             } finally {
-
-                loading.style.display =
-                    "none";
-
+                loading.style.display = "none";
                 updateButton();
-
             }
+        });
 
-        }
-    );
-
-
-    /* NEW PDF */
-
-    newBtn.addEventListener(
-        "click",
-        function () {
-
+        // NEW PDF
+        newBtn.addEventListener("click", function() {
             selectedFile = null;
-
             pdfInput.value = "";
-
-            fileInfo.style.display =
-                "none";
-
-            result.style.display =
-                "none";
-
+            fileInfo.style.display = "none";
+            result.style.display = "none";
             hideError();
-
-            targetValue.value =
-                "500";
-
-            targetUnit.value =
-                "KB";
-
+            targetValue.value = "500";
+            targetUnit.value = "KB";
             updateButton();
-
             window.scrollTo({
                 top: 0,
                 behavior: "smooth"
             });
+        });
 
-        }
-    );
-
-
-    updateButton();
-
-</script>
+        updateButton();
+    </script>
 
 </body>
 
 </html>
-```

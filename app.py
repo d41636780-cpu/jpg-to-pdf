@@ -1,3 +1,4 @@
+import fitz
 from pypdf import PdfWriter
 from reportlab.lib.pagesizes import portrait
 from reportlab.lib.pagesizes import A4, LETTER
@@ -22,6 +23,7 @@ import os
 import uuid
 import json
 import time
+import shutil
 
 
 # =========================================================
@@ -144,8 +146,6 @@ def cleanup_old_files():
                 elif os.path.isdir(item_path):
 
                     # Remove old PDF-to-JPG folders
-                    import shutil
-
                     shutil.rmtree(
                         item_path,
                         ignore_errors=True
@@ -162,149 +162,6 @@ def cleanup_old_files():
 # =========================================================
 # HOME PAGE
 # =========================================================
-
-
-    pdf_file = request.files.get("pdf")
-
-    if not pdf_file or not pdf_file.filename:
-        return {
-            "error": "Please select a PDF file."
-        }, 400
-
-    if not pdf_file.filename.lower().endswith(".pdf"):
-        return {
-            "error": "Only PDF files are supported."
-        }, 400
-
-    input_name = f"{uuid.uuid4().hex}_input.pdf"
-    output_name = f"{uuid.uuid4().hex}_compressed.pdf"
-
-    input_path = os.path.join(
-        UPLOAD_FOLDER,
-        input_name
-    )
-
-    output_path = os.path.join(
-        UPLOAD_FOLDER,
-        output_name
-    )
-
-    try:
-
-        pdf_file.save(input_path)
-
-        original_size = os.path.getsize(
-            input_path
-        )
-
-        # Open and optimize PDF
-        with pikepdf.open(input_path) as pdf:
-
-            pdf.save(
-                output_path,
-                compress_streams=True,
-                recompress_flate=True,
-                object_stream_mode=pikepdf.ObjectStreamMode.generate
-            )
-
-        compressed_size = os.path.getsize(
-            output_path
-        )
-
-        if original_size > 0:
-
-            reduction = (
-                (original_size - compressed_size)
-                / original_size
-            ) * 100
-
-        else:
-
-            reduction = 0
-
-        # If optimization makes the file larger,
-        # keep the original instead.
-        if compressed_size >= original_size:
-
-            import shutil
-
-            shutil.copy2(
-                input_path,
-                output_path
-            )
-
-            compressed_size = original_size
-            reduction = 0
-
-        return {
-            "success": True,
-            "download_url": (
-                f"/download-compressed-pdf/"
-                f"{output_name}"
-            ),
-            "original_size": original_size,
-            "compressed_size": compressed_size,
-            "reduction": round(
-                reduction,
-                1
-            )
-        }
-
-    except Exception as error:
-
-        print(
-            "PDF COMPRESSOR ERROR:",
-            error
-        )
-
-        return {
-            "error": "Could not compress the PDF.",
-            "details": str(error)
-        }, 500
-
-    finally:
-
-        if os.path.exists(input_path):
-
-            try:
-                os.remove(input_path)
-
-            except OSError:
-                pass
-
-
-
-    safe_filename = os.path.basename(
-        filename
-    )
-
-    if not safe_filename.endswith(
-        "_compressed.pdf"
-    ):
-
-        return (
-            "Invalid file.",
-            400
-        )
-
-    file_path = os.path.join(
-        UPLOAD_FOLDER,
-        safe_filename
-    )
-
-    if not os.path.isfile(file_path):
-
-        return (
-            "File not found or expired.",
-            404
-        )
-
-    return send_file(
-        file_path,
-        as_attachment=True,
-        download_name="compressed.pdf",
-        mimetype="application/pdf"
-    )
 
 @app.route("/")
 def home():
@@ -379,6 +236,27 @@ def jpg_to_pdf():
 # =========================================================
 # PNG TO PDF PAGE
 # =========================================================
+
+@app.route("/png-to-pdf")
+def png_to_pdf():
+
+    return render_template(
+        "png-to-pdf.html"
+    )
+
+
+# =========================================================
+# IMAGE TO PDF PAGE
+# =========================================================
+
+@app.route("/image-to-pdf")
+def image_to_pdf():
+
+    return render_template(
+        "image-to-pdf.html"
+    )
+
+
 # =========================================================
 # PDF COMPRESSOR
 # =========================================================
@@ -390,456 +268,7 @@ def pdf_compressor():
 
 @app.route("/compress-pdf", methods=["POST"])
 def compress_pdf():
-
-    pdf_file = request.files.get("pdf")
-
-    target_value = request.form.get(
-        "target_value",
-        ""
-    )
-
-    target_unit = request.form.get(
-        "target_unit",
-        "KB"
-    )
-
-    # -----------------------------------------------------
-    # VALIDATE PDF
-    # -----------------------------------------------------
-
-    if not pdf_file or not pdf_file.filename:
-
-        return {
-            "error": "Please select a PDF file."
-        }, 400
-
-    if not pdf_file.filename.lower().endswith(".pdf"):
-
-        return {
-            "error": "Only PDF files are supported."
-        }, 400
-
-    # -----------------------------------------------------
-    # TARGET SIZE
-    # -----------------------------------------------------
-
-    try:
-
-        target_value = float(
-            target_value
-        )
-
-        if target_value <= 0:
-            raise ValueError
-
-    except Exception:
-
-        return {
-            "error": "Please enter a valid target size."
-        }, 400
-
-    if target_unit == "MB":
-
-        target_bytes = int(
-            target_value * 1024 * 1024
-        )
-
-    else:
-
-        target_bytes = int(
-            target_value * 1024
-        )
-
-    if target_bytes < 50 * 1024:
-
-        return {
-            "error": "Minimum target size is 50 KB."
-        }, 400
-
-    # -----------------------------------------------------
-    # FILE NAMES
-    # -----------------------------------------------------
-
-    file_id = uuid.uuid4().hex
-
-    input_path = os.path.join(
-        UPLOAD_FOLDER,
-        f"{file_id}_input.pdf"
-    )
-
-    output_path = os.path.join(
-        UPLOAD_FOLDER,
-        f"{file_id}_compressed.pdf"
-    )
-
-    try:
-
-        # -------------------------------------------------
-        # SAVE ORIGINAL
-        # -------------------------------------------------
-
-        pdf_file.save(
-            input_path
-        )
-
-        original_size = os.path.getsize(
-            input_path
-        )
-
-        # -------------------------------------------------
-        # ALREADY UNDER TARGET
-        # -------------------------------------------------
-
-        if original_size <= target_bytes:
-
-            import shutil
-
-            shutil.copy2(
-                input_path,
-                output_path
-            )
-
-            return {
-                "success": True,
-                "original_size": original_size,
-                "compressed_size": original_size,
-                "reduction": 0,
-                "target_size": target_bytes,
-                "target_achieved": True,
-                "download_url":
-                    f"/download-compressed-pdf/"
-                    f"{os.path.basename(output_path)}"
-            }
-
-        # -------------------------------------------------
-        # TRY DIFFERENT COMPRESSION LEVELS
-        # -------------------------------------------------
-
-        compression_levels = [
-
-            # DPI, JPEG quality
-            (150, 85),
-            (130, 80),
-            (120, 75),
-            (110, 70),
-            (100, 65),
-            (90, 60),
-            (80, 55),
-            (70, 50),
-            (60, 45),
-            (50, 40),
-            (45, 35),
-            (40, 30)
-
-        ]
-
-        best_path = None
-        best_size = None
-
-        temp_files = []
-
-        # -------------------------------------------------
-        # TRY EACH LEVEL
-        # -------------------------------------------------
-
-        for level_index, (
-            dpi,
-            quality
-        ) in enumerate(
-            compression_levels
-        ):
-
-            temp_pdf = os.path.join(
-                UPLOAD_FOLDER,
-                f"{file_id}_level_{level_index}.pdf"
-            )
-
-            temp_files.append(
-                temp_pdf
-            )
-
-            image_folder = os.path.join(
-                OUTPUT_FOLDER,
-                f"{file_id}_level_{level_index}"
-            )
-
-            os.makedirs(
-                image_folder,
-                exist_ok=True
-            )
-
-            try:
-
-                pages = convert_from_path(
-                    input_path,
-                    dpi=dpi
-                )
-
-                if not pages:
-                    continue
-
-                pdf = None
-
-                # -----------------------------------------
-                # CREATE PDF FROM COMPRESSED IMAGES
-                # -----------------------------------------
-
-                for page_index, page in enumerate(
-                    pages
-                ):
-
-                    if page.mode != "RGB":
-
-                        page = page.convert(
-                            "RGB"
-                        )
-
-                    image_path = os.path.join(
-                        image_folder,
-                        f"page-{page_index}.jpg"
-                    )
-
-                    page.save(
-                        image_path,
-                        "JPEG",
-                        quality=quality,
-                        optimize=True
-                    )
-
-                    page_width, page_height = (
-                        page.size
-                    )
-
-                    if pdf is None:
-
-                        pdf = canvas.Canvas(
-                            temp_pdf,
-                            pagesize=(
-                                page_width,
-                                page_height
-                            )
-                        )
-
-                    else:
-
-                        pdf.setPageSize(
-                            (
-                                page_width,
-                                page_height
-                            )
-                        )
-
-                    pdf.drawImage(
-                        image_path,
-                        0,
-                        0,
-                        width=page_width,
-                        height=page_height
-                    )
-
-                    pdf.showPage()
-
-                    page.close()
-
-                if pdf is None:
-                    continue
-
-                pdf.save()
-
-                current_size = os.path.getsize(
-                    temp_pdf
-                )
-
-                # -----------------------------------------
-                # KEEP SMALLEST RESULT
-                # -----------------------------------------
-
-                if (
-                    best_size is None
-                    or current_size < best_size
-                ):
-
-                    best_size = current_size
-
-                    best_path = temp_pdf
-
-                # -----------------------------------------
-                # TARGET ACHIEVED
-                # -----------------------------------------
-
-                if current_size <= target_bytes:
-
-                    import shutil
-
-                    shutil.copy2(
-                        temp_pdf,
-                        output_path
-                    )
-
-                    best_path = output_path
-                    best_size = current_size
-
-                    break
-
-            except Exception as level_error:
-
-                print(
-                    "Compression level error:",
-                    level_error
-                )
-
-                continue
-
-        # -------------------------------------------------
-        # NO RESULT
-        # -------------------------------------------------
-
-        if best_path is None:
-
-            return {
-                "error":
-                    "Could not compress this PDF."
-            }, 500
-
-        # -------------------------------------------------
-        # COPY BEST RESULT
-        # -------------------------------------------------
-
-        if best_path != output_path:
-
-            import shutil
-
-            shutil.copy2(
-                best_path,
-                output_path
-            )
-
-        final_size = os.path.getsize(
-            output_path
-        )
-
-        # -------------------------------------------------
-        # SAVINGS
-        # -------------------------------------------------
-
-        reduction = (
-            (
-                original_size
-                - final_size
-            )
-            / original_size
-        ) * 100
-
-        reduction = round(
-            max(
-                reduction,
-                0
-            ),
-            1
-        )
-
-        target_achieved = (
-            final_size <= target_bytes
-        )
-
-        if target_achieved:
-
-            message = (
-                "Target size achieved successfully."
-            )
-
-        else:
-
-            message = (
-                "Best possible compression was "
-                "created, but the selected target "
-                "could not be reached."
-            )
-
-        # -------------------------------------------------
-        # RESPONSE
-        # -------------------------------------------------
-
-        return {
-
-            "success": True,
-
-            "original_size":
-                original_size,
-
-            "compressed_size":
-                final_size,
-
-            "target_size":
-                target_bytes,
-
-            "reduction":
-                reduction,
-
-            "target_achieved":
-                target_achieved,
-
-            "message":
-                message,
-
-            "download_url":
-                f"/download-compressed-pdf/"
-                f"{os.path.basename(output_path)}"
-        }
-
-    except Exception as error:
-
-        print(
-            "PDF COMPRESSOR ERROR:",
-            error
-        )
-
-        return {
-            "error":
-                "Could not compress the PDF.",
-            "details":
-                str(error)
-        }, 500
-
-    finally:
-
-        # -------------------------------------------------
-        # CLEAN INPUT
-        # -------------------------------------------------
-
-        if os.path.exists(
-            input_path
-        ):
-
-            try:
-                os.remove(
-                    input_path
-                )
-
-            except OSError:
-                pass
-
-        # -------------------------------------------------
-        # CLEAN TEMP PDFS
-        # -------------------------------------------------
-
-        for temp_file in locals().get(
-            "temp_files",
-            []
-        ):
-
-            if os.path.exists(
-                temp_file
-            ):
-
-                try:
-                    os.remove(
-                        temp_file
-                    )
-
-                except OSError:
-                    pass
-
+    
     pdf_file = request.files.get("pdf")
     target_value = request.form.get("target_value", "")
     target_unit = request.form.get("target_unit", "KB")
@@ -942,8 +371,6 @@ def compress_pdf():
 
         if original_size <= target_bytes:
 
-            import shutil
-
             shutil.copy2(
                 input_path,
                 output_path
@@ -970,127 +397,270 @@ def compress_pdf():
             }
 
         # -------------------------------------------------
-        # COMPRESS PDF
+        # MULTI-LEVEL COMPRESSION TO REACH TARGET
         # -------------------------------------------------
 
-        with pikepdf.open(
-            input_path
-        ) as pdf:
+        # Try multiple compression strategies
+        compression_strategies = []
 
-            pdf.save(
-                output_path,
-                compress_streams=True,
-                recompress_flate=True,
-                object_stream_mode=(
-                    pikepdf.ObjectStreamMode.generate
-                )
+        # Strategy 1: pikepdf compression only
+        compression_strategies.append({
+            "name": "Standard Compression",
+            "dpi": None,
+            "quality": None,
+            "use_pikepdf": True
+        })
+
+        # Strategy 2-15: PDF to images and back with different DPI/Quality
+        dpi_levels = [200, 150, 120, 100, 80, 72]
+        quality_levels = [95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30]
+
+        for dpi in dpi_levels:
+            for quality in quality_levels:
+                compression_strategies.append({
+                    "name": f"DPI {dpi} Quality {quality}",
+                    "dpi": dpi,
+                    "quality": quality,
+                    "use_pikepdf": False
+                })
+
+        best_path = None
+        best_size = None
+        temp_files = []
+
+        for strategy_index, strategy in enumerate(compression_strategies):
+            
+            temp_pdf = os.path.join(
+                UPLOAD_FOLDER,
+                f"{uuid.uuid4().hex}_temp_{strategy_index}.pdf"
             )
+            
+            temp_files.append(temp_pdf)
 
-        compressed_size = os.path.getsize(
-            output_path
-        )
+            try:
+                
+                if strategy["use_pikepdf"]:
+                    # Use pikepdf compression
+                    with pikepdf.open(input_path) as pdf:
+                        pdf.save(
+                            temp_pdf,
+                            compress_streams=True,
+                            recompress_flate=True,
+                            object_stream_mode=pikepdf.ObjectStreamMode.generate
+                        )
+                else:
+                    # Convert PDF to images and back
+                    dpi = strategy["dpi"]
+                    quality = strategy["quality"]
+                    
+                    # Create temp folder for images
+                    image_folder = os.path.join(
+                        OUTPUT_FOLDER,
+                        f"{uuid.uuid4().hex}_images"
+                    )
+                    
+                    os.makedirs(image_folder, exist_ok=True)
+                    
+                    try:
+                        # Convert PDF to images
+                        pages = convert_from_path(
+                            input_path,
+                            dpi=dpi,
+                            fmt='jpeg'
+                        )
+                        
+                        if not pages:
+                            continue
+                        
+                        # Create new PDF from images
+                        pdf_canvas = None
+                        
+                        for page_index, page in enumerate(pages):
+                            
+                            # Ensure RGB
+                            if page.mode != "RGB":
+                                page = page.convert("RGB")
+                            
+                            # Save image
+                            image_path = os.path.join(
+                                image_folder,
+                                f"page_{page_index}.jpg"
+                            )
+                            
+                            page.save(
+                                image_path,
+                                "JPEG",
+                                quality=quality,
+                                optimize=True,
+                                progressive=False
+                            )
+                            
+                            # Get image dimensions
+                            img_width, img_height = page.size
+                            
+                            # Create PDF page
+                            if pdf_canvas is None:
+                                pdf_canvas = canvas.Canvas(
+                                    temp_pdf,
+                                    pagesize=(img_width, img_height)
+                                )
+                            else:
+                                pdf_canvas.setPageSize((img_width, img_height))
+                            
+                            # Draw image on page
+                            pdf_canvas.drawImage(
+                                ImageReader(image_path),
+                                0, 0,
+                                width=img_width,
+                                height=img_height
+                            )
+                            
+                            pdf_canvas.showPage()
+                            
+                            # Clean up image
+                            page.close()
+                            
+                            # Remove image file
+                            try:
+                                os.remove(image_path)
+                            except:
+                                pass
+                        
+                        if pdf_canvas is not None:
+                            pdf_canvas.save()
+                        
+                        # Clean up image folder
+                        try:
+                            shutil.rmtree(image_folder, ignore_errors=True)
+                        except:
+                            pass
+                        
+                    except Exception as e:
+                        print(f"Strategy {strategy_index} failed:", e)
+                        # Clean up
+                        try:
+                            shutil.rmtree(image_folder, ignore_errors=True)
+                        except:
+                            pass
+                        continue
+                
+                # Check if file was created
+                if not os.path.exists(temp_pdf):
+                    continue
+                
+                current_size = os.path.getsize(temp_pdf)
+                
+                # Keep track of best result
+                if best_size is None or current_size < best_size:
+                    best_size = current_size
+                    best_path = temp_pdf
+                
+                # If we achieved target, stop
+                if current_size <= target_bytes:
+                    shutil.copy2(temp_pdf, output_path)
+                    best_path = output_path
+                    best_size = current_size
+                    break
+                    
+            except Exception as level_error:
+                print(f"Compression strategy {strategy_index} error:", level_error)
+                continue
 
         # -------------------------------------------------
-        # IF COMPRESSION FAILED
+        # IF WE HAVE A BEST RESULT, USE IT
         # -------------------------------------------------
 
-        if compressed_size >= original_size:
-
-            import shutil
-
-            shutil.copy2(
-                input_path,
-                output_path
-            )
-
+        if best_path is None:
+            # Fallback: Just copy original
+            shutil.copy2(input_path, output_path)
             compressed_size = original_size
-
-        # -------------------------------------------------
-        # CALCULATE SAVINGS
-        # -------------------------------------------------
-
-        reduction = (
-            (original_size - compressed_size)
-            / original_size
-        ) * 100
-
-        reduction = round(
-            max(reduction, 0),
-            1
-        )
-
-        target_achieved = (
-            compressed_size <= target_bytes
-        )
-
-        if target_achieved:
-
-            message = (
-                "Target size achieved successfully."
-            )
-
+            reduction = 0
+            target_achieved = False
+            message = "Could not compress the PDF further. The original file is provided."
+            
         else:
+            # Copy best result to output
+            if best_path != output_path:
+                shutil.copy2(best_path, output_path)
+            
+            compressed_size = os.path.getsize(output_path)
+            
+            # If compressed size is still larger than target, try one more aggressive pass
+            if compressed_size > target_bytes:
+                # Try one final aggressive compression
+                try:
+                    # Use pikePDF with maximum compression
+                    with pikepdf.open(output_path) as pdf:
+                        # Remove metadata to save space
+                        with pdf.open_metadata() as meta:
+                            for key in list(meta):
+                                del meta[key]
+                        
+                        pdf.save(
+                            output_path,
+                            compress_streams=True,
+                            recompress_flate=True,
+                            object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                            stream_decode_level=pikepdf.StreamDecodeLevel.specialized
+                        )
+                    
+                    compressed_size = os.path.getsize(output_path)
+                except:
+                    pass
+            
+            # Calculate reduction
+            reduction = ((original_size - compressed_size) / original_size) * 100
+            reduction = round(max(reduction, 0), 1)
+            
+            target_achieved = compressed_size <= target_bytes
+            
+            if target_achieved:
+                message = f"Target size achieved successfully! Compressed to {format_size(compressed_size)}."
+            else:
+                message = f"Best possible compression: {format_size(compressed_size)}. Target: {format_size(target_bytes)}."
 
-            message = (
-                "The PDF was compressed, "
-                "but the requested target could "
-                "not be reached with this PDF."
-            )
+        # -------------------------------------------------
+        # RETURN RESPONSE
+        # -------------------------------------------------
 
         return {
-
             "success": True,
-
-            "target_size":
-                target_bytes,
-
-            "original_size":
-                original_size,
-
-            "compressed_size":
-                compressed_size,
-
-            "reduction":
-                reduction,
-
-            "target_achieved":
-                target_achieved,
-
-            "message":
-                message,
-
-            "download_url":
-                f"/download-compressed-pdf/"
-                f"{output_name}"
+            "target_size": target_bytes,
+            "original_size": original_size,
+            "compressed_size": compressed_size,
+            "reduction": reduction,
+            "target_achieved": target_achieved,
+            "message": message,
+            "download_url": f"/download-compressed-pdf/{output_name}"
         }
 
     except Exception as error:
 
-        print(
-            "PDF COMPRESSOR ERROR:",
-            error
-        )
+        print("PDF COMPRESSOR ERROR:", error)
 
         if os.path.exists(output_path):
-
             try:
                 os.remove(output_path)
-
             except OSError:
                 pass
 
         return {
-            "error":
-                "Could not compress the PDF."
+            "error": "Could not compress the PDF.",
+            "details": str(error)
         }, 500
 
     finally:
+        # Clean up temp files
+        for temp_file in locals().get("temp_files", []):
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
 
         if os.path.exists(input_path):
-
             try:
                 os.remove(input_path)
-
             except OSError:
                 pass
 
@@ -1137,27 +707,6 @@ def download_compressed_pdf(filename):
     )
 
 
-
-@app.route("/png-to-pdf")
-def png_to_pdf():
-
-    return render_template(
-        "png-to-pdf.html"
-    )
-
-
-# =========================================================
-# IMAGE TO PDF PAGE
-# =========================================================
-
-@app.route("/image-to-pdf")
-def image_to_pdf():
-
-    return render_template(
-        "image-to-pdf.html"
-    )
-
-
 # =========================================================
 # PDF TO JPG PAGE + CONVERSION
 # =========================================================
@@ -1178,7 +727,6 @@ def pdf_to_jpg():
             "pdf-to-jpg.html"
         )
 
-
     # -----------------------------------------------------
     # GET PDF
     # -----------------------------------------------------
@@ -1187,20 +735,11 @@ def pdf_to_jpg():
         "pdf"
     )
 
-
-    if not pdf_file:
-
-        return {
-            "error": "Please select a PDF file."
-        }, 400
-
-
-    if not pdf_file.filename:
+    if not pdf_file or not pdf_file.filename:
 
         return {
             "error": "Please select a PDF file."
         }, 400
-
 
     # -----------------------------------------------------
     # CHECK EXTENSION
@@ -1213,7 +752,6 @@ def pdf_to_jpg():
         return {
             "error": "Only PDF files are supported."
         }, 400
-
 
     # -----------------------------------------------------
     # CHECK SIZE
@@ -1238,13 +776,11 @@ def pdf_to_jpg():
             "error": "Could not read the PDF file."
         }, 400
 
-
     if pdf_size > MAX_FILE_SIZE:
 
         return {
             "error": "PDF file is too large. Maximum size is 10 MB."
         }, 400
-
 
     # -----------------------------------------------------
     # SETTINGS
@@ -1263,7 +799,6 @@ def pdf_to_jpg():
 
         dpi = 150
 
-
     try:
 
         quality = int(
@@ -1277,7 +812,6 @@ def pdf_to_jpg():
 
         quality = 90
 
-
     # Safe limits
 
     if dpi not in (
@@ -1289,7 +823,6 @@ def pdf_to_jpg():
 
         dpi = 150
 
-
     if quality not in (
         70,
         85,
@@ -1298,25 +831,21 @@ def pdf_to_jpg():
 
         quality = 90
 
-
     # -----------------------------------------------------
     # FILE PATHS
     # -----------------------------------------------------
 
     file_id = uuid.uuid4().hex
 
-
     pdf_path = os.path.join(
         UPLOAD_FOLDER,
         f"{file_id}.pdf"
     )
 
-
     output_folder = os.path.join(
         OUTPUT_FOLDER,
         file_id
     )
-
 
     try:
 
@@ -1325,7 +854,6 @@ def pdf_to_jpg():
             exist_ok=True
         )
 
-
         # -------------------------------------------------
         # SAVE PDF
         # -------------------------------------------------
@@ -1333,7 +861,6 @@ def pdf_to_jpg():
         pdf_file.save(
             pdf_path
         )
-
 
         # -------------------------------------------------
         # CONVERT PDF TO IMAGES
@@ -1344,16 +871,13 @@ def pdf_to_jpg():
             dpi=dpi
         )
 
-
         if not pages:
 
             return {
                 "error": "The PDF does not contain any pages."
             }, 400
 
-
         image_urls = []
-
 
         # -------------------------------------------------
         # SAVE JPG PAGES
@@ -1368,12 +892,10 @@ def pdf_to_jpg():
                 f"page-{index}.jpg"
             )
 
-
             image_path = os.path.join(
                 output_folder,
                 image_filename
             )
-
 
             # Ensure RGB
 
@@ -1383,7 +905,6 @@ def pdf_to_jpg():
                     "RGB"
                 )
 
-
             page.save(
                 image_path,
                 "JPEG",
@@ -1391,13 +912,11 @@ def pdf_to_jpg():
                 optimize=True
             )
 
-
             image_urls.append(
                 f"/download-pdf-jpg/"
                 f"{file_id}/"
                 f"{image_filename}"
             )
-
 
         # -------------------------------------------------
         # DELETE ORIGINAL PDF
@@ -1416,7 +935,6 @@ def pdf_to_jpg():
 
             pass
 
-
         # -------------------------------------------------
         # SUCCESS
         # -------------------------------------------------
@@ -1427,14 +945,12 @@ def pdf_to_jpg():
             "images": image_urls
         }
 
-
     except Exception as error:
 
         print(
             "PDF TO JPG ERROR:",
             error
         )
-
 
         # Remove PDF if conversion failed
 
@@ -1455,6 +971,16 @@ def pdf_to_jpg():
 
                 pass
 
+        # Remove output folder if exists
+
+        if os.path.isdir(
+            output_folder
+        ):
+
+            shutil.rmtree(
+                output_folder,
+                ignore_errors=True
+            )
 
         return {
             "error": (
@@ -1489,7 +1015,6 @@ def download_pdf_jpg(
         filename
     )
 
-
     # Only JPG files
 
     if not safe_filename.lower().endswith(
@@ -1501,12 +1026,10 @@ def download_pdf_jpg(
             400
         )
 
-
     folder = os.path.join(
         OUTPUT_FOLDER,
         safe_file_id
     )
-
 
     # -----------------------------------------------------
     # CHECK FOLDER
@@ -1521,7 +1044,6 @@ def download_pdf_jpg(
             404
         )
 
-
     # -----------------------------------------------------
     # CHECK FILE
     # -----------------------------------------------------
@@ -1531,7 +1053,6 @@ def download_pdf_jpg(
         safe_filename
     )
 
-
     if not os.path.isfile(
         file_path
     ):
@@ -1540,7 +1061,6 @@ def download_pdf_jpg(
             "File not found or expired.",
             404
         )
-
 
     # -----------------------------------------------------
     # SEND JPG
@@ -1567,7 +1087,6 @@ def convert():
 
     cleanup_old_files()
 
-
     # -----------------------------------------------------
     # SETTINGS
     # -----------------------------------------------------
@@ -1577,24 +1096,20 @@ def convert():
         "a4"
     )
 
-
     orientation = request.form.get(
         "orientation",
         "portrait"
     )
-
 
     quality = request.form.get(
         "quality",
         "high"
     )
 
-
     page_numbers = request.form.get(
         "page_numbers",
         "yes"
     )
-
 
     # -----------------------------------------------------
     # ROTATIONS
@@ -1604,7 +1119,6 @@ def convert():
         "rotations",
         "[]"
     )
-
 
     try:
 
@@ -1623,7 +1137,6 @@ def convert():
 
         rotations = []
 
-
     # -----------------------------------------------------
     # GET FILES
     # -----------------------------------------------------
@@ -1631,7 +1144,6 @@ def convert():
     files = request.files.getlist(
         "images"
     )
-
 
     # -----------------------------------------------------
     # FILE COUNT
@@ -1644,14 +1156,12 @@ def convert():
             400
         )
 
-
     if len(files) > MAX_FILES:
 
         return (
             f"Maximum {MAX_FILES} images are allowed.",
             400
         )
-
 
     # -----------------------------------------------------
     # VALIDATE FILES
@@ -1661,16 +1171,13 @@ def convert():
 
     total_size = 0
 
-
     for file in files:
 
         if not file:
             continue
 
-
         if not file.filename:
             continue
-
 
         # Extension
 
@@ -1683,7 +1190,6 @@ def convert():
                 "Only JPG, JPEG, PNG and WebP are allowed.",
                 400
             )
-
 
         # File size
 
@@ -1707,7 +1213,6 @@ def convert():
                 400
             )
 
-
         if file_size > MAX_FILE_SIZE:
 
             return (
@@ -1716,13 +1221,11 @@ def convert():
                 400
             )
 
-
         total_size += file_size
 
         valid_files.append(
             file
         )
-
 
     # -----------------------------------------------------
     # TOTAL SIZE
@@ -1735,14 +1238,12 @@ def convert():
             400
         )
 
-
     if not valid_files:
 
         return (
             "No valid images were uploaded.",
             400
         )
-
 
     # -----------------------------------------------------
     # JPEG QUALITY
@@ -1760,7 +1261,6 @@ def convert():
 
         jpeg_quality = 50
 
-
     # -----------------------------------------------------
     # PAGE SIZE
     # -----------------------------------------------------
@@ -1773,7 +1273,6 @@ def convert():
 
         base_width, base_height = A4
 
-
     # -----------------------------------------------------
     # PDF NAME
     # -----------------------------------------------------
@@ -1782,15 +1281,12 @@ def convert():
         f"{uuid.uuid4().hex}.pdf"
     )
 
-
     pdf_path = os.path.join(
         UPLOAD_FOLDER,
         pdf_name
     )
 
-
     pdf = None
-
 
     # -----------------------------------------------------
     # PROCESS IMAGES
@@ -1827,7 +1323,6 @@ def convert():
                     400
                 )
 
-
             # ---------------------------------------------
             # RGB
             # ---------------------------------------------
@@ -1836,13 +1331,11 @@ def convert():
                 "RGB"
             )
 
-
             # ---------------------------------------------
             # ROTATION
             # ---------------------------------------------
 
             rotation = 0
-
 
             if file_index < len(
                 rotations
@@ -1860,7 +1353,6 @@ def convert():
 
                     rotation = 0
 
-
             if rotation not in (
                 0,
                 90,
@@ -1870,14 +1362,12 @@ def convert():
 
                 rotation = 0
 
-
             if rotation != 0:
 
                 image = image.rotate(
                     rotation,
                     expand=True
                 )
-
 
             # ---------------------------------------------
             # PAGE SIZE
@@ -1896,7 +1386,6 @@ def convert():
 
                 page_width = base_width
                 page_height = base_height
-
 
                 if orientation == "landscape":
 
@@ -1924,7 +1413,6 @@ def convert():
                         )
                     )
 
-
             # ---------------------------------------------
             # CREATE PDF
             # ---------------------------------------------
@@ -1948,7 +1436,6 @@ def convert():
                     )
                 )
 
-
             # ---------------------------------------------
             # TEMP JPG
             # ---------------------------------------------
@@ -1957,12 +1444,10 @@ def convert():
                 f"{uuid.uuid4().hex}.jpg"
             )
 
-
             temp_path = os.path.join(
                 UPLOAD_FOLDER,
                 temp_name
             )
-
 
             image.save(
                 temp_path,
@@ -1971,9 +1456,7 @@ def convert():
                 optimize=True
             )
 
-
             image.close()
-
 
             # ---------------------------------------------
             # OPEN TEMP IMAGE
@@ -1983,11 +1466,9 @@ def convert():
                 temp_path
             )
 
-
             img_width, img_height = (
                 img.size
             )
-
 
             # ---------------------------------------------
             # MARGIN
@@ -1995,18 +1476,15 @@ def convert():
 
             margin = 30
 
-
             available_width = (
                 page_width
                 - (margin * 2)
             )
 
-
             available_height = (
                 page_height
                 - (margin * 2)
             )
-
 
             # ---------------------------------------------
             # SCALE
@@ -2017,16 +1495,13 @@ def convert():
                 available_height / img_height
             )
 
-
             new_width = (
                 img_width * scale
             )
 
-
             new_height = (
                 img_height * scale
             )
-
 
             # ---------------------------------------------
             # CENTER
@@ -2037,12 +1512,10 @@ def convert():
                 - new_width
             ) / 2
 
-
             y = (
                 page_height
                 - new_height
             ) / 2
-
 
             # ---------------------------------------------
             # DRAW IMAGE
@@ -2057,9 +1530,7 @@ def convert():
                 preserveAspectRatio=True
             )
 
-
             img.close()
-
 
             # ---------------------------------------------
             # PAGE NUMBER
@@ -2072,7 +1543,6 @@ def convert():
                     9
                 )
 
-
                 pdf.drawCentredString(
                     page_width / 2,
                     15,
@@ -2081,13 +1551,11 @@ def convert():
                     )
                 )
 
-
             # ---------------------------------------------
             # NEW PAGE
             # ---------------------------------------------
 
             pdf.showPage()
-
 
             # ---------------------------------------------
             # DELETE TEMP
@@ -2106,7 +1574,6 @@ def convert():
 
                 pass
 
-
         # -------------------------------------------------
         # SAVE PDF
         # -------------------------------------------------
@@ -2122,14 +1589,12 @@ def convert():
                 500
             )
 
-
     except Exception as error:
 
         print(
             "PDF ERROR:",
             error
         )
-
 
         if pdf is not None:
 
@@ -2140,7 +1605,6 @@ def convert():
             except Exception:
 
                 pass
-
 
         if os.path.exists(
             pdf_path
@@ -2159,12 +1623,10 @@ def convert():
 
                 pass
 
-
         return (
             "Something went wrong while creating the PDF.",
             500
         )
-
 
     # -----------------------------------------------------
     # SUCCESS
@@ -2197,17 +1659,14 @@ def download_pdf(filename):
             400
         )
 
-
     safe_filename = os.path.basename(
         filename
     )
-
 
     file_path = os.path.join(
         UPLOAD_FOLDER,
         safe_filename
     )
-
 
     # Check file
 
@@ -2220,7 +1679,6 @@ def download_pdf(filename):
             404
         )
 
-
     return send_file(
         file_path,
         as_attachment=True,
@@ -2229,108 +1687,6 @@ def download_pdf(filename):
     )
 
 
-# =========================================================
-# ROBOTS.TXT
-# =========================================================
-
-@app.route("/robots.txt")
-def robots():
-
-    content = """User-agent: *
-Allow: /
-
-Sitemap: https://jpg-to-pdf-qefb.onrender.com/sitemap.xml
-"""
-
-    return Response(
-        content,
-        mimetype="text/plain"
-    )
-
-
-# =========================================================
-# SITEMAP.XML
-# =========================================================
-
-@app.route("/sitemap.xml")
-def sitemap():
-
-    base_url = (
-        "https://jpg-to-pdf-qefb.onrender.com"
-    )
-
-
-    pages = [
-
-        "/",
-
-        "/jpg-to-pdf",
-
-        "/png-to-pdf",
-
-        "/image-to-pdf",
-
-        "/pdf-to-jpg",
-
-        "/about",
-
-        "/contact",
-
-        "/privacy",
-
-        "/terms"
-
-    ]
-
-
-    xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-    )
-
-
-    xml += (
-        '<urlset '
-        'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    )
-
-
-    for page in pages:
-
-        xml += "  <url>\n"
-
-        xml += (
-            f"    <loc>{base_url}{page}</loc>\n"
-        )
-
-        xml += "  </url>\n"
-
-
-    xml += "</urlset>"
-
-
-    return Response(
-        xml,
-        mimetype="application/xml"
-    )
-
-
-# =========================================================
-# ERROR HANDLERS
-# =========================================================
-
-@app.errorhandler(413)
-def file_too_large(error):
-
-    return (
-        "Upload is too large. "
-        "Maximum total upload size is 50 MB.",
-        413
-    )
-
-
-# =========================================================
-# RUN APPLICATION
-# =========================================================
 # =========================================================
 # PDF MERGER PAGE
 # =========================================================
@@ -2492,6 +1848,121 @@ def download_merged_pdf(filename):
         mimetype="application/pdf"
     )
 
+
+# =========================================================
+# ROBOTS.TXT
+# =========================================================
+
+@app.route("/robots.txt")
+def robots():
+
+    content = """User-agent: *
+Allow: /
+
+Sitemap: https://jpg-to-pdf-qefb.onrender.com/sitemap.xml
+"""
+
+    return Response(
+        content,
+        mimetype="text/plain"
+    )
+
+
+# =========================================================
+# SITEMAP.XML
+# =========================================================
+
+@app.route("/sitemap.xml")
+def sitemap():
+
+    base_url = (
+        "https://jpg-to-pdf-qefb.onrender.com"
+    )
+
+    pages = [
+
+        "/",
+
+        "/jpg-to-pdf",
+
+        "/png-to-pdf",
+
+        "/image-to-pdf",
+
+        "/pdf-to-jpg",
+
+        "/pdf-compressor",
+
+        "/pdf-merger",
+
+        "/about",
+
+        "/contact",
+
+        "/privacy",
+
+        "/terms"
+
+    ]
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+    )
+
+    xml += (
+        '<urlset '
+        'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    )
+
+    for page in pages:
+
+        xml += "  <url>\n"
+
+        xml += (
+            f"    <loc>{base_url}{page}</loc>\n"
+        )
+
+        xml += "  </url>\n"
+
+    xml += "</urlset>"
+
+    return Response(
+        xml,
+        mimetype="application/xml"
+    )
+
+
+# =========================================================
+# ERROR HANDLERS
+# =========================================================
+
+@app.errorhandler(413)
+def file_too_large(error):
+
+    return (
+        "Upload is too large. "
+        "Maximum total upload size is 50 MB.",
+        413
+    )
+
+
+# =========================================================
+# HELPER FUNCTIONS
+# =========================================================
+
+def format_size(bytes):
+    """Helper function to format file size"""
+    if bytes < 1024:
+        return f"{bytes} B"
+    elif bytes < 1024 * 1024:
+        return f"{bytes / 1024:.1f} KB"
+    else:
+        return f"{bytes / (1024 * 1024):.2f} MB"
+
+
+# =========================================================
+# RUN APPLICATION
+# =========================================================
 
 if __name__ == "__main__":
 
