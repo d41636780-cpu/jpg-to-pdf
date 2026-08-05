@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>PDF to JPG Converter - Free Online</title>
+
+<meta name="description"
+      content="Convert PDF pages to JPG images online. Upload a PDF and download its pages as high-quality JPG images.">
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}">
+
+
+</head>
+
+<body>
+
+<header class="header">
+
+
+<h1>
+    PDF to JPG Converter
+</h1>
+
+<p>
+    Convert PDF pages into JPG images quickly and easily.
+</p>
+
+
+</header>
+
+<main class="main">
+
+<section class="converter-page">
+
+
+<!-- Upload -->
+
+<div
+    id="pdfDropZone"
+    class="drop-zone"
+>
+
+    <div class="upload-icon">
+        📄
+    </div>
+
+    <h2>
+        Drag & Drop your PDF here
+    </h2>
+
+    <p>
+        or
+    </p>
+
+    <label
+        for="pdfInput"
+        class="select-button"
+    >
+        Choose PDF
+    </label>
+
+    <input
+        type="file"
+        id="pdfInput"
+        accept=".pdf,application/pdf"
+        hidden
+    >
+
+    <p class="file-info">
+        PDF files only
+    </p>
+
+</div>
+
+
+<!-- Selected PDF -->
+
+<div
+    id="selectedPdf"
+    class="pdf-selected"
+    style="display: none;"
+>
+
+    <div class="pdf-file-icon">
+        📕
+    </div>
+
+    <div class="pdf-file-info">
+
+        <strong id="pdfFileName">
+            document.pdf
+        </strong>
+
+        <span id="pdfFileSize">
+            0 KB
+        </span>
+
+    </div>
+
+    <button
+        type="button"
+        id="removePdf"
+        class="clear-button"
+    >
+        Remove
+    </button>
+
+</div>
+
+
+<!-- Settings -->
+
+<div
+    id="settingsSection"
+    class="settings"
+    style="display: none;"
+>
+
+    <h2>
+        JPG Settings
+    </h2>
+
+
+    <div class="settings-grid">
+
+
+        <div class="setting">
+
+            <label for="jpgQuality">
+                Image Quality
+            </label>
+
+            <select id="jpgQuality">
+
+                <option value="95">
+                    High Quality
+                </option>
+
+                <option value="85" selected>
+                    Good Quality
+                </option>
+
+                <option value="70">
+                    Smaller File
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="setting">
+
+            <label for="jpgDpi">
+                Resolution
+            </label>
+
+            <select id="jpgDpi">
+
+                <option value="100">
+                    100 DPI - Smaller
+                </option>
+
+                <option value="150" selected>
+                    150 DPI - Recommended
+                </option>
+
+                <option value="200">
+                    200 DPI - High
+                </option>
+
+                <option value="300">
+                    300 DPI - Maximum
+                </option>
+
+            </select>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+<!-- Error -->
+
+<div
+    id="pdfError"
+    class="error-message"
+    style="display: none;"
+>
+</div>
+
+
+<!-- Convert Button -->
+
+<button
+    type="button"
+    id="pdfConvertButton"
+    class="convert-button"
+    style="display: none;"
+>
+
+    <span id="pdfButtonText">
+        Convert PDF to JPG
+    </span>
+
+    <span
+        id="pdfLoadingText"
+        style="display: none;"
+    >
+        ⏳ Converting...
+    </span>
+
+</button>
+
+
+<!-- Progress -->
+
+<div
+    id="pdfProgress"
+    class="pdf-progress"
+    style="display: none;"
+>
+
+    <h3>
+        Converting your PDF...
+    </h3>
+
+    <div class="progress-container">
+
+        <div
+            id="pdfProgressBar"
+            class="progress-bar"
+            style="width: 0%;"
+        >
+
+            <span id="pdfProgressPercent">
+                0%
+            </span>
+
+        </div>
+
+    </div>
+
+    <p id="pdfProgressMessage">
+        Preparing your PDF...
+    </p>
+
+</div>
+
+
+<!-- Result -->
+
+<div
+    id="pdfResult"
+    class="pdf-result"
+    style="display: none;"
+>
+
+    <div class="success-icon">
+        ✓
+    </div>
+
+    <h2>
+        PDF Converted Successfully
+    </h2>
+
+    <p id="pdfResultMessage">
+        Your PDF pages are ready.
+    </p>
+
+
+    <div
+        id="jpgResults"
+        class="jpg-results"
+    >
+    </div>
+
+
+    <button
+        type="button"
+        id="pdfConvertAnother"
+        class="secondary-button"
+    >
+        🔄 Convert Another PDF
+    </button>
+
+</div>
+
+
+</section>
+
+<!-- Information -->
+
+<section class="info-section">
+
+
+<h2>
+    How to Convert PDF to JPG
+</h2>
+
+
+<div class="steps">
+
+
+    <div class="step">
+
+        <div class="step-number">
+            1
+        </div>
+
+        <h3>
+            Upload PDF
+        </h3>
+
+        <p>
+            Select a PDF file or drag it into
+            the upload area.
+        </p>
+
+    </div>
+
+
+    <div class="step">
+
+        <div class="step-number">
+            2
+        </div>
+
+        <h3>
+            Choose Quality
+        </h3>
+
+        <p>
+            Select the image quality and
+            resolution you prefer.
+        </p>
+
+    </div>
+
+
+    <div class="step">
+
+        <div class="step-number">
+            3
+        </div>
+
+        <h3>
+            Download JPGs
+        </h3>
+
+        <p>
+            Convert your PDF pages and
+            download the generated JPG images.
+        </p>
+
+    </div>
+
+
+</div>
+
+
+</section>
+
+<section class="info-section">
+
+
+<h2>
+    PDF to JPG Converter
+</h2>
+
+<p>
+    Convert PDF pages into JPG images without
+    installing desktop software. Upload your PDF,
+    choose the image quality and resolution, and
+    convert the document into individual JPG images.
+</p>
+
+<p>
+    Each PDF page is converted into a separate JPG
+    image so you can download and use individual
+    pages when needed.
+</p>
+
+
+</section>
+
+<section class="info-section">
+
+
+<h2>
+    Frequently Asked Questions
+</h2>
+
+
+<h3>
+    Can I convert a multi-page PDF?
+</h3>
+
+<p>
+    Yes. Each page of the PDF is converted into
+    a separate JPG image.
+</p>
+
+
+<h3>
+    Can I choose the image quality?
+</h3>
+
+<p>
+    Yes. You can choose different JPG quality
+    and resolution settings before conversion.
+</p>
+
+
+<h3>
+    What happens to each PDF page?
+</h3>
+
+<p>
+    Every page is rendered as an individual JPG
+    image.
+</p>
+
+
+</section>
+
+</main>
+
+<footer class="site-footer">
+
+
+<div class="footer-container">
+
+
+    <div class="footer-brand">
+
+        <h3>
+            JPG to PDF Converter
+        </h3>
+
+        <p>
+            Simple online tools for image and
+            document conversion.
+        </p>
+
+    </div>
+
+
+    <div class="footer-links">
+
+        <h4>
+            Information
+        </h4>
+
+        <a href="/about">
+            About
+        </a>
+
+        <a href="/contact">
+            Contact
+        </a>
+
+        <a href="/privacy">
+            Privacy Policy
+        </a>
+
+        <a href="/terms">
+            Terms of Service
+        </a>
+
+    </div>
+
+
+    <div class="footer-links">
+
+        <h4>
+            Tools
+        </h4>
+
+        <a href="/">
+            JPG to PDF
+        </a>
+
+        <a href="/jpg-to-pdf">
+            JPG to PDF Guide
+        </a>
+
+        <a href="/pdf-to-jpg">
+            PDF to JPG
+        </a>
+
+        
+    </div>
+
+
+</div>
+
+
+<div class="footer-bottom">
+
+    <p>
+        © 2026 JPG to PDF Converter.
+        All rights reserved.
+    </p>
+
+</div>
+
+
+</footer>
+
+<script>
+
+const pdfInput =
+    document.getElementById("pdfInput");
+
+const pdfDropZone =
+    document.getElementById("pdfDropZone");
+
+const selectedPdf =
+    document.getElementById("selectedPdf");
+
+const pdfFileName =
+    document.getElementById("pdfFileName");
+
+const pdfFileSize =
+    document.getElementById("pdfFileSize");
+
+const removePdf =
+    document.getElementById("removePdf");
+
+const settingsSection =
+    document.getElementById("settingsSection");
+
+const pdfConvertButton =
+    document.getElementById("pdfConvertButton");
+
+const pdfButtonText =
+    document.getElementById("pdfButtonText");
+
+const pdfLoadingText =
+    document.getElementById("pdfLoadingText");
+
+const pdfProgress =
+    document.getElementById("pdfProgress");
+
+const pdfProgressBar =
+    document.getElementById("pdfProgressBar");
+
+const pdfProgressPercent =
+    document.getElementById("pdfProgressPercent");
+
+const pdfProgressMessage =
+    document.getElementById("pdfProgressMessage");
+
+const pdfResult =
+    document.getElementById("pdfResult");
+
+const pdfResultMessage =
+    document.getElementById("pdfResultMessage");
+
+const jpgResults =
+    document.getElementById("jpgResults");
+
+const pdfError =
+    document.getElementById("pdfError");
+
+const pdfConvertAnother =
+    document.getElementById("pdfConvertAnother");
+
+
+let selectedFile = null;
+
+
+/* ==============================
+   FILE SELECT
+============================== */
+
+pdfInput.addEventListener(
+    "change",
+    function () {
+
+        if (this.files.length > 0) {
+
+            handlePdfFile(this.files[0]);
+
+        }
+
+    }
+);
+
+
+/* ==============================
+   DRAG & DROP
+============================== */
+
+pdfDropZone.addEventListener(
+    "dragover",
+    function (event) {
+
+        event.preventDefault();
+
+        pdfDropZone.classList.add("drag-over");
+
+    }
+);
+
+
+pdfDropZone.addEventListener(
+    "dragleave",
+    function () {
+
+        pdfDropZone.classList.remove("drag-over");
+
+    }
+);
+
+
+pdfDropZone.addEventListener(
+    "drop",
+    function (event) {
+
+        event.preventDefault();
+
+        pdfDropZone.classList.remove("drag-over");
+
+        const files = event.dataTransfer.files;
+
+        if (files.length > 0) {
+
+            handlePdfFile(files[0]);
+
+        }
+
+    }
+);
+
+
+/* ==============================
+   HANDLE PDF
+============================== */
+
+function handlePdfFile(file) {
+
+    hideError();
+
+    if (
+        file.type !== "application/pdf" &&
+        !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+
+        showError(
+            "Please select a valid PDF file."
+        );
+
+        return;
+
+    }
+
+
+    selectedFile = file;
+
+
+    pdfFileName.textContent =
+        file.name;
+
+    pdfFileSize.textContent =
+        formatFileSize(file.size);
+
+
+    pdfDropZone.style.display =
+        "none";
+
+    selectedPdf.style.display =
+        "flex";
+
+    settingsSection.style.display =
+        "block";
+
+    pdfConvertButton.style.display =
+        "block";
+
+}
+
+
+/* ==============================
+   REMOVE PDF
+============================== */
+
+removePdf.addEventListener(
+    "click",
+    resetPdf
+);
+
+
+/* ==============================
+   CONVERT
+============================== */
+
+pdfConvertButton.addEventListener(
+    "click",
+    async function () {
+
+        if (!selectedFile) {
+
+            showError(
+                "Please select a PDF file first."
+            );
+
+            return;
+
+        }
+
+
+        hideError();
+
+        pdfConvertButton.disabled = true;
+
+        pdfButtonText.style.display =
+            "none";
+
+        pdfLoadingText.style.display =
+            "inline";
+
+
+        pdfProgress.style.display =
+            "block";
+
+        pdfResult.style.display =
+            "none";
+
+
+        setProgress(
+            10,
+            "Uploading your PDF..."
+        );
+
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "pdf",
+            selectedFile
+        );
+
+
+        try {
+
+            setProgress(
+                25,
+                "Processing PDF..."
+            );
+
+
+            const response =
+                await fetch(
+                    "/pdf-to-jpg",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok || !data.success) {
+
+                throw new Error(
+                    data.error ||
+                    "Conversion failed."
+                );
+
+            }
+
+
+            setProgress(
+                80,
+                "Creating JPG images..."
+            );
+
+
+            await delay(400);
+
+
+            setProgress(
+                100,
+                "Conversion complete!"
+            );
+
+
+            showResults(data);
+
+
+        }
+        catch (error) {
+
+            showError(
+                error.message ||
+                "Something went wrong while converting the PDF."
+            );
+
+            pdfConvertButton.disabled =
+                false;
+
+            pdfButtonText.style.display =
+                "inline";
+
+            pdfLoadingText.style.display =
+                "none";
+
+        }
+
+    }
+);
+
+
+/* ==============================
+   SHOW RESULTS
+============================== */
+
+function showResults(data) {
+
+    jpgResults.innerHTML = "";
+
+
+    data.images.forEach(
+        function (url, index) {
+
+            const card =
+                document.createElement("div");
+
+            card.className =
+                "jpg-result-card";
+
+
+            card.innerHTML = `
+
+                <div class="jpg-preview">
+
+                    <img
+                        src="${url}"
+                        alt="PDF page ${index + 1}"
+                        loading="lazy"
+                    >
+
+                </div>
+
+                <div class="jpg-result-info">
+
+                    <strong>
+                        Page ${index + 1}
+                    </strong>
+
+                    <a
+                        href="${url}"
+                        class="download-button"
+                        download
+                    >
+                        ⬇ Download JPG
+                    </a>
+
+                </div>
+
+            `;
+
+
+            jpgResults.appendChild(card);
+
+        }
+    );
+
+
+    pdfResultMessage.textContent =
+        `${data.pages} page${data.pages === 1 ? "" : "s"} converted successfully.`;
+
+
+    pdfProgress.style.display =
+        "none";
+
+    pdfConvertButton.style.display =
+        "none";
+
+    pdfResult.style.display =
+        "block";
+
+}
+
+
+/* ==============================
+   CONVERT ANOTHER
+============================== */
+
+pdfConvertAnother.addEventListener(
+    "click",
+    resetPdf
+);
+
+
+function resetPdf() {
+
+    selectedFile = null;
+
+    pdfInput.value = "";
+
+    pdfDropZone.style.display =
+        "block";
+
+    selectedPdf.style.display =
+        "none";
+
+    settingsSection.style.display =
+        "none";
+
+    pdfConvertButton.style.display =
+        "none";
+
+    pdfProgress.style.display =
+        "none";
+
+    pdfResult.style.display =
+        "none";
+
+    pdfConvertButton.disabled =
+        false;
+
+    pdfButtonText.style.display =
+        "inline";
+
+    pdfLoadingText.style.display =
+        "none";
+
+    jpgResults.innerHTML = "";
+
+    hideError();
+
+}
+
+
+/* ==============================
+   PROGRESS
+============================== */
+
+function setProgress(
+    percent,
+    message
+) {
+
+    pdfProgressBar.style.width =
+        percent + "%";
+
+    pdfProgressPercent.textContent =
+        percent + "%";
+
+    pdfProgressMessage.textContent =
+        message;
+
+}
+
+
+/* ==============================
+   ERROR
+============================== */
+
+function showError(message) {
+
+    pdfError.textContent =
+        message;
+
+    pdfError.style.display =
+        "block";
+
+}
+
+
+function hideError() {
+
+    pdfError.textContent =
+        "";
+
+    pdfError.style.display =
+        "none";
+
+}
+
+
+/* ==============================
+   HELPERS
+============================== */
+
+function formatFileSize(bytes) {
+
+    if (bytes < 1024) {
+
+        return bytes + " B";
+
+    }
+
+
+    if (bytes < 1024 * 1024) {
+
+        return (
+            (bytes / 1024).toFixed(1)
+            + " KB"
+        );
+
+    }
+
+
+    return (
+        (bytes / (1024 * 1024)).toFixed(1)
+        + " MB"
+    );
+
+}
+
+
+function delay(ms) {
+
+    return new Promise(
+        resolve => setTimeout(resolve, ms)
+    );
+
+}
+
+</script>
+
+</body>
+</html>

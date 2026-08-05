@@ -1,22 +1,23 @@
-from flask import Flask, render_template, request, send_file, Response
-import os
-import uuid
-import json
-import time
-
 from flask import (
     Flask,
     render_template,
     request,
-    send_file
-    
+    send_file,
+    send_from_directory,
+    Response
 )
 
+from pdf2image import convert_from_path
 from PIL import Image
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.pagesizes import A4, LETTER
+
+import os
+import uuid
+import json
+import time
 
 
 # =========================================================
@@ -31,10 +32,10 @@ app = Flask(__name__)
 # =========================================================
 
 UPLOAD_FOLDER = "uploads"
+OUTPUT_FOLDER = "output"
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
 MAX_TOTAL_SIZE = 50 * 1024 * 1024
-
 MAX_FILES = 20
 
 FILE_LIFETIME = 30 * 60
@@ -56,11 +57,16 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_TOTAL_SIZE
 
 
 # =========================================================
-# CREATE UPLOAD FOLDER
+# CREATE FOLDERS
 # =========================================================
 
 os.makedirs(
     UPLOAD_FOLDER,
+    exist_ok=True
+)
+
+os.makedirs(
+    OUTPUT_FOLDER,
     exist_ok=True
 )
 
@@ -91,131 +97,67 @@ def cleanup_old_files():
 
     current_time = time.time()
 
-    try:
+    folders = [
+        UPLOAD_FOLDER,
+        OUTPUT_FOLDER
+    ]
 
-        filenames = os.listdir(
-            UPLOAD_FOLDER
-        )
-
-    except OSError:
-        return
-
-
-    for filename in filenames:
-
-        file_path = os.path.join(
-            UPLOAD_FOLDER,
-            filename
-        )
+    for folder in folders:
 
         try:
+            items = os.listdir(folder)
 
-            if not os.path.isfile(
-                file_path
-            ):
-                continue
+        except OSError:
+            continue
 
+        for item in items:
 
-            file_age = (
-                current_time
-                - os.path.getmtime(
-                    file_path
-                )
+            item_path = os.path.join(
+                folder,
+                item
             )
 
+            try:
 
-            if file_age > FILE_LIFETIME:
-
-                os.remove(
-                    file_path
+                modified_time = os.path.getmtime(
+                    item_path
                 )
 
-        except (
-            PermissionError,
-            OSError
-        ):
+                age = (
+                    current_time
+                    - modified_time
+                )
 
-            # File may still be in use.
-            pass
+                if age <= FILE_LIFETIME:
+                    continue
+
+                if os.path.isfile(item_path):
+
+                    os.remove(
+                        item_path
+                    )
+
+                elif os.path.isdir(item_path):
+
+                    # Remove old PDF-to-JPG folders
+                    import shutil
+
+                    shutil.rmtree(
+                        item_path,
+                        ignore_errors=True
+                    )
+
+            except (
+                PermissionError,
+                OSError
+            ):
+
+                pass
 
 
 # =========================================================
 # HOME PAGE
 # =========================================================
-@app.route("/robots.txt")
-def robots():
-    return Response(
-        """User-agent: *
-Allow: /
-
-Sitemap: https://jpg-to-pdf-qefb.onrender.com/sitemap.xml
-""",
-        mimetype="text/plain"
-    )
-
-
-@app.route("/sitemap.xml")
-def sitemap():
-
-    base_url = "https://jpg-to-pdf-qefb.onrender.com"
-
-    pages = [
-        "/",
-        "/jpg-to-pdf",
-        "/png-to-pdf",
-        "/image-to-pdf",
-        "/about",
-        "/contact",
-        "/privacy",
-        "/terms"
-    ]
-
-    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
-    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-
-    for page in pages:
-        xml += "  <url>\n"
-        xml += f"    <loc>{base_url}{page}</loc>\n"
-        xml += "  </url>\n"
-
-    xml += "</urlset>"
-
-    return Response(
-        xml,
-        mimetype="application/xml"
-    )
-
-
-@app.route("/png-to-pdf")
-def png_to_pdf():
-    return render_template("png-to-pdf.html")
-
-
-@app.route("/image-to-pdf")
-def image_to_pdf():
-    return render_template("image-to-pdf.html")
-
-@app.route("/jpg-to-pdf")
-def jpg_to_pdf():
-    return render_template("jpg-to-pdf.html")
-
-@app.route("/terms")
-def terms():
-    return render_template("terms.html")
-
-@app.route("/privacy")
-def privacy():
-    return render_template("privacy.html")
-
-@app.route("/about")
-def about():
-    return render_template("about.html")
-
-
-@app.route("/contact")
-def contact():
-    return render_template("contact.html")
-
 
 @app.route("/")
 def home():
@@ -224,6 +166,487 @@ def home():
 
     return render_template(
         "index.html"
+    )
+
+
+# =========================================================
+# ABOUT
+# =========================================================
+
+@app.route("/about")
+def about():
+
+    return render_template(
+        "about.html"
+    )
+
+
+# =========================================================
+# CONTACT
+# =========================================================
+
+@app.route("/contact")
+def contact():
+
+    return render_template(
+        "contact.html"
+    )
+
+
+# =========================================================
+# PRIVACY
+# =========================================================
+
+@app.route("/privacy")
+def privacy():
+
+    return render_template(
+        "privacy.html"
+    )
+
+
+# =========================================================
+# TERMS
+# =========================================================
+
+@app.route("/terms")
+def terms():
+
+    return render_template(
+        "terms.html"
+    )
+
+
+# =========================================================
+# JPG TO PDF PAGE
+# =========================================================
+
+@app.route("/jpg-to-pdf")
+def jpg_to_pdf():
+
+    return render_template(
+        "jpg-to-pdf.html"
+    )
+
+
+# =========================================================
+# PNG TO PDF PAGE
+# =========================================================
+
+@app.route("/png-to-pdf")
+def png_to_pdf():
+
+    return render_template(
+        "png-to-pdf.html"
+    )
+
+
+# =========================================================
+# IMAGE TO PDF PAGE
+# =========================================================
+
+@app.route("/image-to-pdf")
+def image_to_pdf():
+
+    return render_template(
+        "image-to-pdf.html"
+    )
+
+
+# =========================================================
+# PDF TO JPG PAGE + CONVERSION
+# =========================================================
+
+@app.route(
+    "/pdf-to-jpg",
+    methods=["GET", "POST"]
+)
+def pdf_to_jpg():
+
+    # -----------------------------------------------------
+    # SHOW PAGE
+    # -----------------------------------------------------
+
+    if request.method == "GET":
+
+        return render_template(
+            "pdf-to-jpg.html"
+        )
+
+
+    # -----------------------------------------------------
+    # GET PDF
+    # -----------------------------------------------------
+
+    pdf_file = request.files.get(
+        "pdf"
+    )
+
+
+    if not pdf_file:
+
+        return {
+            "error": "Please select a PDF file."
+        }, 400
+
+
+    if not pdf_file.filename:
+
+        return {
+            "error": "Please select a PDF file."
+        }, 400
+
+
+    # -----------------------------------------------------
+    # CHECK EXTENSION
+    # -----------------------------------------------------
+
+    if not pdf_file.filename.lower().endswith(
+        ".pdf"
+    ):
+
+        return {
+            "error": "Only PDF files are supported."
+        }, 400
+
+
+    # -----------------------------------------------------
+    # CHECK SIZE
+    # -----------------------------------------------------
+
+    try:
+
+        pdf_file.stream.seek(
+            0,
+            os.SEEK_END
+        )
+
+        pdf_size = (
+            pdf_file.stream.tell()
+        )
+
+        pdf_file.stream.seek(0)
+
+    except Exception:
+
+        return {
+            "error": "Could not read the PDF file."
+        }, 400
+
+
+    if pdf_size > MAX_FILE_SIZE:
+
+        return {
+            "error": "PDF file is too large. Maximum size is 10 MB."
+        }, 400
+
+
+    # -----------------------------------------------------
+    # SETTINGS
+    # -----------------------------------------------------
+
+    try:
+
+        dpi = int(
+            request.form.get(
+                "dpi",
+                150
+            )
+        )
+
+    except ValueError:
+
+        dpi = 150
+
+
+    try:
+
+        quality = int(
+            request.form.get(
+                "quality",
+                90
+            )
+        )
+
+    except ValueError:
+
+        quality = 90
+
+
+    # Safe limits
+
+    if dpi not in (
+        100,
+        150,
+        200,
+        300
+    ):
+
+        dpi = 150
+
+
+    if quality not in (
+        70,
+        85,
+        95
+    ):
+
+        quality = 90
+
+
+    # -----------------------------------------------------
+    # FILE PATHS
+    # -----------------------------------------------------
+
+    file_id = uuid.uuid4().hex
+
+
+    pdf_path = os.path.join(
+        UPLOAD_FOLDER,
+        f"{file_id}.pdf"
+    )
+
+
+    output_folder = os.path.join(
+        OUTPUT_FOLDER,
+        file_id
+    )
+
+
+    try:
+
+        os.makedirs(
+            output_folder,
+            exist_ok=True
+        )
+
+
+        # -------------------------------------------------
+        # SAVE PDF
+        # -------------------------------------------------
+
+        pdf_file.save(
+            pdf_path
+        )
+
+
+        # -------------------------------------------------
+        # CONVERT PDF TO IMAGES
+        # -------------------------------------------------
+
+        pages = convert_from_path(
+            pdf_path,
+            dpi=dpi
+        )
+
+
+        if not pages:
+
+            return {
+                "error": "The PDF does not contain any pages."
+            }, 400
+
+
+        image_urls = []
+
+
+        # -------------------------------------------------
+        # SAVE JPG PAGES
+        # -------------------------------------------------
+
+        for index, page in enumerate(
+            pages,
+            start=1
+        ):
+
+            image_filename = (
+                f"page-{index}.jpg"
+            )
+
+
+            image_path = os.path.join(
+                output_folder,
+                image_filename
+            )
+
+
+            # Ensure RGB
+
+            if page.mode != "RGB":
+
+                page = page.convert(
+                    "RGB"
+                )
+
+
+            page.save(
+                image_path,
+                "JPEG",
+                quality=quality,
+                optimize=True
+            )
+
+
+            image_urls.append(
+                f"/download-pdf-jpg/"
+                f"{file_id}/"
+                f"{image_filename}"
+            )
+
+
+        # -------------------------------------------------
+        # DELETE ORIGINAL PDF
+        # -------------------------------------------------
+
+        try:
+
+            os.remove(
+                pdf_path
+            )
+
+        except (
+            PermissionError,
+            OSError
+        ):
+
+            pass
+
+
+        # -------------------------------------------------
+        # SUCCESS
+        # -------------------------------------------------
+
+        return {
+            "success": True,
+            "pages": len(image_urls),
+            "images": image_urls
+        }
+
+
+    except Exception as error:
+
+        print(
+            "PDF TO JPG ERROR:",
+            error
+        )
+
+
+        # Remove PDF if conversion failed
+
+        if os.path.exists(
+            pdf_path
+        ):
+
+            try:
+
+                os.remove(
+                    pdf_path
+                )
+
+            except (
+                PermissionError,
+                OSError
+            ):
+
+                pass
+
+
+        return {
+            "error": (
+                "Could not convert the PDF. "
+                "Please make sure the PDF is valid."
+            ),
+            "details": str(error)
+        }, 500
+
+
+# =========================================================
+# DOWNLOAD PDF TO JPG
+# =========================================================
+
+@app.route(
+    "/download-pdf-jpg/<file_id>/<filename>"
+)
+def download_pdf_jpg(
+    file_id,
+    filename
+):
+
+    # -----------------------------------------------------
+    # SECURITY
+    # -----------------------------------------------------
+
+    safe_file_id = os.path.basename(
+        file_id
+    )
+
+    safe_filename = os.path.basename(
+        filename
+    )
+
+
+    # Only JPG files
+
+    if not safe_filename.lower().endswith(
+        ".jpg"
+    ):
+
+        return (
+            "Invalid file.",
+            400
+        )
+
+
+    folder = os.path.join(
+        OUTPUT_FOLDER,
+        safe_file_id
+    )
+
+
+    # -----------------------------------------------------
+    # CHECK FOLDER
+    # -----------------------------------------------------
+
+    if not os.path.isdir(
+        folder
+    ):
+
+        return (
+            "File not found or expired.",
+            404
+        )
+
+
+    # -----------------------------------------------------
+    # CHECK FILE
+    # -----------------------------------------------------
+
+    file_path = os.path.join(
+        folder,
+        safe_filename
+    )
+
+
+    if not os.path.isfile(
+        file_path
+    ):
+
+        return (
+            "File not found or expired.",
+            404
+        )
+
+
+    # -----------------------------------------------------
+    # SEND JPG
+    # -----------------------------------------------------
+
+    return send_from_directory(
+        folder,
+        safe_filename,
+        as_attachment=True,
+        download_name=safe_filename,
+        mimetype="image/jpeg"
     )
 
 
@@ -240,24 +663,27 @@ def convert():
     cleanup_old_files()
 
 
-    # =====================================================
-    # GET SETTINGS
-    # =====================================================
+    # -----------------------------------------------------
+    # SETTINGS
+    # -----------------------------------------------------
 
     page_size = request.form.get(
         "page_size",
         "a4"
     )
 
+
     orientation = request.form.get(
         "orientation",
         "portrait"
     )
 
+
     quality = request.form.get(
         "quality",
         "high"
     )
+
 
     page_numbers = request.form.get(
         "page_numbers",
@@ -265,9 +691,9 @@ def convert():
     )
 
 
-    # =====================================================
-    # GET ROTATIONS
-    # =====================================================
+    # -----------------------------------------------------
+    # ROTATIONS
+    # -----------------------------------------------------
 
     rotation_text = request.form.get(
         "rotations",
@@ -293,18 +719,18 @@ def convert():
         rotations = []
 
 
-    # =====================================================
-    # GET UPLOADED FILES
-    # =====================================================
+    # -----------------------------------------------------
+    # GET FILES
+    # -----------------------------------------------------
 
     files = request.files.getlist(
         "images"
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # FILE COUNT
-    # =====================================================
+    # -----------------------------------------------------
 
     if len(files) == 0:
 
@@ -322,9 +748,9 @@ def convert():
         )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # VALIDATE FILES
-    # =====================================================
+    # -----------------------------------------------------
 
     valid_files = []
 
@@ -341,9 +767,7 @@ def convert():
             continue
 
 
-        # -------------------------------------------------
-        # EXTENSION
-        # -------------------------------------------------
+        # Extension
 
         if not allowed_file(
             file.filename
@@ -356,9 +780,7 @@ def convert():
             )
 
 
-        # -------------------------------------------------
-        # FILE SIZE
-        # -------------------------------------------------
+        # File size
 
         try:
 
@@ -397,9 +819,9 @@ def convert():
         )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # TOTAL SIZE
-    # =====================================================
+    # -----------------------------------------------------
 
     if total_size > MAX_TOTAL_SIZE:
 
@@ -417,9 +839,9 @@ def convert():
         )
 
 
-    # =====================================================
-    # QUALITY
-    # =====================================================
+    # -----------------------------------------------------
+    # JPEG QUALITY
+    # -----------------------------------------------------
 
     if quality == "high":
 
@@ -434,9 +856,9 @@ def convert():
         jpeg_quality = 50
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # PAGE SIZE
-    # =====================================================
+    # -----------------------------------------------------
 
     if page_size == "letter":
 
@@ -447,9 +869,9 @@ def convert():
         base_width, base_height = A4
 
 
-    # =====================================================
-    # CREATE PDF NAME
-    # =====================================================
+    # -----------------------------------------------------
+    # PDF NAME
+    # -----------------------------------------------------
 
     pdf_name = (
         f"{uuid.uuid4().hex}.pdf"
@@ -465,9 +887,9 @@ def convert():
     pdf = None
 
 
-    # =====================================================
-    # PROCESS ALL IMAGES
-    # =====================================================
+    # -----------------------------------------------------
+    # PROCESS IMAGES
+    # -----------------------------------------------------
 
     try:
 
@@ -475,9 +897,9 @@ def convert():
             valid_files
         ):
 
-            # =============================================
+            # ---------------------------------------------
             # OPEN IMAGE
-            # =============================================
+            # ---------------------------------------------
 
             try:
 
@@ -501,18 +923,18 @@ def convert():
                 )
 
 
-            # =============================================
-            # CONVERT TO RGB
-            # =============================================
+            # ---------------------------------------------
+            # RGB
+            # ---------------------------------------------
 
             image = image.convert(
                 "RGB"
             )
 
 
-            # =============================================
+            # ---------------------------------------------
             # ROTATION
-            # =============================================
+            # ---------------------------------------------
 
             rotation = 0
 
@@ -552,9 +974,9 @@ def convert():
                 )
 
 
-            # =============================================
+            # ---------------------------------------------
             # PAGE SIZE
-            # =============================================
+            # ---------------------------------------------
 
             if page_size == "original":
 
@@ -598,9 +1020,9 @@ def convert():
                     )
 
 
-            # =============================================
+            # ---------------------------------------------
             # CREATE PDF
-            # =============================================
+            # ---------------------------------------------
 
             if pdf is None:
 
@@ -622,9 +1044,9 @@ def convert():
                 )
 
 
-            # =============================================
+            # ---------------------------------------------
             # TEMP JPG
-            # =============================================
+            # ---------------------------------------------
 
             temp_name = (
                 f"{uuid.uuid4().hex}.jpg"
@@ -648,9 +1070,9 @@ def convert():
             image.close()
 
 
-            # =============================================
+            # ---------------------------------------------
             # OPEN TEMP IMAGE
-            # =============================================
+            # ---------------------------------------------
 
             img = Image.open(
                 temp_path
@@ -662,9 +1084,9 @@ def convert():
             )
 
 
-            # =============================================
+            # ---------------------------------------------
             # MARGIN
-            # =============================================
+            # ---------------------------------------------
 
             margin = 30
 
@@ -681,9 +1103,9 @@ def convert():
             )
 
 
-            # =============================================
-            # SCALE IMAGE
-            # =============================================
+            # ---------------------------------------------
+            # SCALE
+            # ---------------------------------------------
 
             scale = min(
                 available_width / img_width,
@@ -701,9 +1123,9 @@ def convert():
             )
 
 
-            # =============================================
-            # CENTER IMAGE
-            # =============================================
+            # ---------------------------------------------
+            # CENTER
+            # ---------------------------------------------
 
             x = (
                 page_width
@@ -717,9 +1139,9 @@ def convert():
             ) / 2
 
 
-            # =============================================
+            # ---------------------------------------------
             # DRAW IMAGE
-            # =============================================
+            # ---------------------------------------------
 
             pdf.drawImage(
                 ImageReader(img),
@@ -734,9 +1156,9 @@ def convert():
             img.close()
 
 
-            # =============================================
+            # ---------------------------------------------
             # PAGE NUMBER
-            # =============================================
+            # ---------------------------------------------
 
             if page_numbers == "yes":
 
@@ -755,16 +1177,16 @@ def convert():
                 )
 
 
-            # =============================================
+            # ---------------------------------------------
             # NEW PAGE
-            # =============================================
+            # ---------------------------------------------
 
             pdf.showPage()
 
 
-            # =============================================
-            # DELETE TEMP FILE
-            # =============================================
+            # ---------------------------------------------
+            # DELETE TEMP
+            # ---------------------------------------------
 
             try:
 
@@ -780,9 +1202,9 @@ def convert():
                 pass
 
 
-        # =================================================
+        # -------------------------------------------------
         # SAVE PDF
-        # =================================================
+        # -------------------------------------------------
 
         if pdf is not None:
 
@@ -795,10 +1217,6 @@ def convert():
                 500
             )
 
-
-    # =====================================================
-    # PDF CREATION ERROR
-    # =====================================================
 
     except Exception as error:
 
@@ -843,9 +1261,9 @@ def convert():
         )
 
 
-    # =====================================================
-    # SUCCESS RESPONSE
-    # =====================================================
+    # -----------------------------------------------------
+    # SUCCESS
+    # -----------------------------------------------------
 
     return {
         "success": True,
@@ -855,7 +1273,7 @@ def convert():
 
 
 # =========================================================
-# DOWNLOAD PDF
+# DOWNLOAD JPG TO PDF
 # =========================================================
 
 @app.route(
@@ -863,11 +1281,9 @@ def convert():
 )
 def download_pdf(filename):
 
-    # -----------------------------------------------------
-    # BASIC SECURITY CHECK
-    # -----------------------------------------------------
+    # Security
 
-    if not filename.endswith(
+    if not filename.lower().endswith(
         ".pdf"
     ):
 
@@ -877,7 +1293,6 @@ def download_pdf(filename):
         )
 
 
-    # Prevent path traversal
     safe_filename = os.path.basename(
         filename
     )
@@ -889,9 +1304,7 @@ def download_pdf(filename):
     )
 
 
-    # -----------------------------------------------------
-    # CHECK FILE
-    # -----------------------------------------------------
+    # Check file
 
     if not os.path.isfile(
         file_path
@@ -903,15 +1316,110 @@ def download_pdf(filename):
         )
 
 
-    # -----------------------------------------------------
-    # SEND PDF
-    # -----------------------------------------------------
-
     return send_file(
         file_path,
         as_attachment=True,
         download_name="jpg-to-pdf.pdf",
         mimetype="application/pdf"
+    )
+
+
+# =========================================================
+# ROBOTS.TXT
+# =========================================================
+
+@app.route("/robots.txt")
+def robots():
+
+    content = """User-agent: *
+Allow: /
+
+Sitemap: https://jpg-to-pdf-qefb.onrender.com/sitemap.xml
+"""
+
+    return Response(
+        content,
+        mimetype="text/plain"
+    )
+
+
+# =========================================================
+# SITEMAP.XML
+# =========================================================
+
+@app.route("/sitemap.xml")
+def sitemap():
+
+    base_url = (
+        "https://jpg-to-pdf-qefb.onrender.com"
+    )
+
+
+    pages = [
+
+        "/",
+
+        "/jpg-to-pdf",
+
+        "/png-to-pdf",
+
+        "/image-to-pdf",
+
+        "/pdf-to-jpg",
+
+        "/about",
+
+        "/contact",
+
+        "/privacy",
+
+        "/terms"
+
+    ]
+
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+    )
+
+
+    xml += (
+        '<urlset '
+        'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    )
+
+
+    for page in pages:
+
+        xml += "  <url>\n"
+
+        xml += (
+            f"    <loc>{base_url}{page}</loc>\n"
+        )
+
+        xml += "  </url>\n"
+
+
+    xml += "</urlset>"
+
+
+    return Response(
+        xml,
+        mimetype="application/xml"
+    )
+
+
+# =========================================================
+# ERROR HANDLERS
+# =========================================================
+
+@app.errorhandler(413)
+def file_too_large(error):
+
+    return (
+        "Upload is too large. "
+        "Maximum total upload size is 50 MB.",
+        413
     )
 
 
@@ -924,4 +1432,3 @@ if __name__ == "__main__":
     app.run(
         debug=True
     )
-
