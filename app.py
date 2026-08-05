@@ -1,3 +1,7 @@
+from pypdf import PdfWriter
+from reportlab.lib.pagesizes import portrait
+from reportlab.lib.pagesizes import A4, LETTER
+import pikepdf
 from flask import (
     Flask,
     render_template,
@@ -159,6 +163,149 @@ def cleanup_old_files():
 # HOME PAGE
 # =========================================================
 
+
+    pdf_file = request.files.get("pdf")
+
+    if not pdf_file or not pdf_file.filename:
+        return {
+            "error": "Please select a PDF file."
+        }, 400
+
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        return {
+            "error": "Only PDF files are supported."
+        }, 400
+
+    input_name = f"{uuid.uuid4().hex}_input.pdf"
+    output_name = f"{uuid.uuid4().hex}_compressed.pdf"
+
+    input_path = os.path.join(
+        UPLOAD_FOLDER,
+        input_name
+    )
+
+    output_path = os.path.join(
+        UPLOAD_FOLDER,
+        output_name
+    )
+
+    try:
+
+        pdf_file.save(input_path)
+
+        original_size = os.path.getsize(
+            input_path
+        )
+
+        # Open and optimize PDF
+        with pikepdf.open(input_path) as pdf:
+
+            pdf.save(
+                output_path,
+                compress_streams=True,
+                recompress_flate=True,
+                object_stream_mode=pikepdf.ObjectStreamMode.generate
+            )
+
+        compressed_size = os.path.getsize(
+            output_path
+        )
+
+        if original_size > 0:
+
+            reduction = (
+                (original_size - compressed_size)
+                / original_size
+            ) * 100
+
+        else:
+
+            reduction = 0
+
+        # If optimization makes the file larger,
+        # keep the original instead.
+        if compressed_size >= original_size:
+
+            import shutil
+
+            shutil.copy2(
+                input_path,
+                output_path
+            )
+
+            compressed_size = original_size
+            reduction = 0
+
+        return {
+            "success": True,
+            "download_url": (
+                f"/download-compressed-pdf/"
+                f"{output_name}"
+            ),
+            "original_size": original_size,
+            "compressed_size": compressed_size,
+            "reduction": round(
+                reduction,
+                1
+            )
+        }
+
+    except Exception as error:
+
+        print(
+            "PDF COMPRESSOR ERROR:",
+            error
+        )
+
+        return {
+            "error": "Could not compress the PDF.",
+            "details": str(error)
+        }, 500
+
+    finally:
+
+        if os.path.exists(input_path):
+
+            try:
+                os.remove(input_path)
+
+            except OSError:
+                pass
+
+
+
+    safe_filename = os.path.basename(
+        filename
+    )
+
+    if not safe_filename.endswith(
+        "_compressed.pdf"
+    ):
+
+        return (
+            "Invalid file.",
+            400
+        )
+
+    file_path = os.path.join(
+        UPLOAD_FOLDER,
+        safe_filename
+    )
+
+    if not os.path.isfile(file_path):
+
+        return (
+            "File not found or expired.",
+            404
+        )
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name="compressed.pdf",
+        mimetype="application/pdf"
+    )
+
 @app.route("/")
 def home():
 
@@ -232,6 +379,764 @@ def jpg_to_pdf():
 # =========================================================
 # PNG TO PDF PAGE
 # =========================================================
+# =========================================================
+# PDF COMPRESSOR
+# =========================================================
+
+@app.route("/pdf-compressor")
+def pdf_compressor():
+    return render_template("pdf-compressor.html")
+
+
+@app.route("/compress-pdf", methods=["POST"])
+def compress_pdf():
+
+    pdf_file = request.files.get("pdf")
+
+    target_value = request.form.get(
+        "target_value",
+        ""
+    )
+
+    target_unit = request.form.get(
+        "target_unit",
+        "KB"
+    )
+
+    # -----------------------------------------------------
+    # VALIDATE PDF
+    # -----------------------------------------------------
+
+    if not pdf_file or not pdf_file.filename:
+
+        return {
+            "error": "Please select a PDF file."
+        }, 400
+
+    if not pdf_file.filename.lower().endswith(".pdf"):
+
+        return {
+            "error": "Only PDF files are supported."
+        }, 400
+
+    # -----------------------------------------------------
+    # TARGET SIZE
+    # -----------------------------------------------------
+
+    try:
+
+        target_value = float(
+            target_value
+        )
+
+        if target_value <= 0:
+            raise ValueError
+
+    except Exception:
+
+        return {
+            "error": "Please enter a valid target size."
+        }, 400
+
+    if target_unit == "MB":
+
+        target_bytes = int(
+            target_value * 1024 * 1024
+        )
+
+    else:
+
+        target_bytes = int(
+            target_value * 1024
+        )
+
+    if target_bytes < 50 * 1024:
+
+        return {
+            "error": "Minimum target size is 50 KB."
+        }, 400
+
+    # -----------------------------------------------------
+    # FILE NAMES
+    # -----------------------------------------------------
+
+    file_id = uuid.uuid4().hex
+
+    input_path = os.path.join(
+        UPLOAD_FOLDER,
+        f"{file_id}_input.pdf"
+    )
+
+    output_path = os.path.join(
+        UPLOAD_FOLDER,
+        f"{file_id}_compressed.pdf"
+    )
+
+    try:
+
+        # -------------------------------------------------
+        # SAVE ORIGINAL
+        # -------------------------------------------------
+
+        pdf_file.save(
+            input_path
+        )
+
+        original_size = os.path.getsize(
+            input_path
+        )
+
+        # -------------------------------------------------
+        # ALREADY UNDER TARGET
+        # -------------------------------------------------
+
+        if original_size <= target_bytes:
+
+            import shutil
+
+            shutil.copy2(
+                input_path,
+                output_path
+            )
+
+            return {
+                "success": True,
+                "original_size": original_size,
+                "compressed_size": original_size,
+                "reduction": 0,
+                "target_size": target_bytes,
+                "target_achieved": True,
+                "download_url":
+                    f"/download-compressed-pdf/"
+                    f"{os.path.basename(output_path)}"
+            }
+
+        # -------------------------------------------------
+        # TRY DIFFERENT COMPRESSION LEVELS
+        # -------------------------------------------------
+
+        compression_levels = [
+
+            # DPI, JPEG quality
+            (150, 85),
+            (130, 80),
+            (120, 75),
+            (110, 70),
+            (100, 65),
+            (90, 60),
+            (80, 55),
+            (70, 50),
+            (60, 45),
+            (50, 40),
+            (45, 35),
+            (40, 30)
+
+        ]
+
+        best_path = None
+        best_size = None
+
+        temp_files = []
+
+        # -------------------------------------------------
+        # TRY EACH LEVEL
+        # -------------------------------------------------
+
+        for level_index, (
+            dpi,
+            quality
+        ) in enumerate(
+            compression_levels
+        ):
+
+            temp_pdf = os.path.join(
+                UPLOAD_FOLDER,
+                f"{file_id}_level_{level_index}.pdf"
+            )
+
+            temp_files.append(
+                temp_pdf
+            )
+
+            image_folder = os.path.join(
+                OUTPUT_FOLDER,
+                f"{file_id}_level_{level_index}"
+            )
+
+            os.makedirs(
+                image_folder,
+                exist_ok=True
+            )
+
+            try:
+
+                pages = convert_from_path(
+                    input_path,
+                    dpi=dpi
+                )
+
+                if not pages:
+                    continue
+
+                pdf = None
+
+                # -----------------------------------------
+                # CREATE PDF FROM COMPRESSED IMAGES
+                # -----------------------------------------
+
+                for page_index, page in enumerate(
+                    pages
+                ):
+
+                    if page.mode != "RGB":
+
+                        page = page.convert(
+                            "RGB"
+                        )
+
+                    image_path = os.path.join(
+                        image_folder,
+                        f"page-{page_index}.jpg"
+                    )
+
+                    page.save(
+                        image_path,
+                        "JPEG",
+                        quality=quality,
+                        optimize=True
+                    )
+
+                    page_width, page_height = (
+                        page.size
+                    )
+
+                    if pdf is None:
+
+                        pdf = canvas.Canvas(
+                            temp_pdf,
+                            pagesize=(
+                                page_width,
+                                page_height
+                            )
+                        )
+
+                    else:
+
+                        pdf.setPageSize(
+                            (
+                                page_width,
+                                page_height
+                            )
+                        )
+
+                    pdf.drawImage(
+                        image_path,
+                        0,
+                        0,
+                        width=page_width,
+                        height=page_height
+                    )
+
+                    pdf.showPage()
+
+                    page.close()
+
+                if pdf is None:
+                    continue
+
+                pdf.save()
+
+                current_size = os.path.getsize(
+                    temp_pdf
+                )
+
+                # -----------------------------------------
+                # KEEP SMALLEST RESULT
+                # -----------------------------------------
+
+                if (
+                    best_size is None
+                    or current_size < best_size
+                ):
+
+                    best_size = current_size
+
+                    best_path = temp_pdf
+
+                # -----------------------------------------
+                # TARGET ACHIEVED
+                # -----------------------------------------
+
+                if current_size <= target_bytes:
+
+                    import shutil
+
+                    shutil.copy2(
+                        temp_pdf,
+                        output_path
+                    )
+
+                    best_path = output_path
+                    best_size = current_size
+
+                    break
+
+            except Exception as level_error:
+
+                print(
+                    "Compression level error:",
+                    level_error
+                )
+
+                continue
+
+        # -------------------------------------------------
+        # NO RESULT
+        # -------------------------------------------------
+
+        if best_path is None:
+
+            return {
+                "error":
+                    "Could not compress this PDF."
+            }, 500
+
+        # -------------------------------------------------
+        # COPY BEST RESULT
+        # -------------------------------------------------
+
+        if best_path != output_path:
+
+            import shutil
+
+            shutil.copy2(
+                best_path,
+                output_path
+            )
+
+        final_size = os.path.getsize(
+            output_path
+        )
+
+        # -------------------------------------------------
+        # SAVINGS
+        # -------------------------------------------------
+
+        reduction = (
+            (
+                original_size
+                - final_size
+            )
+            / original_size
+        ) * 100
+
+        reduction = round(
+            max(
+                reduction,
+                0
+            ),
+            1
+        )
+
+        target_achieved = (
+            final_size <= target_bytes
+        )
+
+        if target_achieved:
+
+            message = (
+                "Target size achieved successfully."
+            )
+
+        else:
+
+            message = (
+                "Best possible compression was "
+                "created, but the selected target "
+                "could not be reached."
+            )
+
+        # -------------------------------------------------
+        # RESPONSE
+        # -------------------------------------------------
+
+        return {
+
+            "success": True,
+
+            "original_size":
+                original_size,
+
+            "compressed_size":
+                final_size,
+
+            "target_size":
+                target_bytes,
+
+            "reduction":
+                reduction,
+
+            "target_achieved":
+                target_achieved,
+
+            "message":
+                message,
+
+            "download_url":
+                f"/download-compressed-pdf/"
+                f"{os.path.basename(output_path)}"
+        }
+
+    except Exception as error:
+
+        print(
+            "PDF COMPRESSOR ERROR:",
+            error
+        )
+
+        return {
+            "error":
+                "Could not compress the PDF.",
+            "details":
+                str(error)
+        }, 500
+
+    finally:
+
+        # -------------------------------------------------
+        # CLEAN INPUT
+        # -------------------------------------------------
+
+        if os.path.exists(
+            input_path
+        ):
+
+            try:
+                os.remove(
+                    input_path
+                )
+
+            except OSError:
+                pass
+
+        # -------------------------------------------------
+        # CLEAN TEMP PDFS
+        # -------------------------------------------------
+
+        for temp_file in locals().get(
+            "temp_files",
+            []
+        ):
+
+            if os.path.exists(
+                temp_file
+            ):
+
+                try:
+                    os.remove(
+                        temp_file
+                    )
+
+                except OSError:
+                    pass
+
+    pdf_file = request.files.get("pdf")
+    target_value = request.form.get("target_value", "")
+    target_unit = request.form.get("target_unit", "KB")
+
+    # -----------------------------------------------------
+    # CHECK PDF
+    # -----------------------------------------------------
+
+    if not pdf_file or not pdf_file.filename:
+        return {
+            "error": "Please select a PDF file."
+        }, 400
+
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        return {
+            "error": "Only PDF files are supported."
+        }, 400
+
+    # -----------------------------------------------------
+    # CHECK TARGET SIZE
+    # -----------------------------------------------------
+
+    try:
+        target_value = float(target_value)
+
+        if target_value <= 0:
+            raise ValueError
+
+    except Exception:
+
+        return {
+            "error": "Please enter a valid target size."
+        }, 400
+
+    if target_unit == "MB":
+
+        target_bytes = int(
+            target_value * 1024 * 1024
+        )
+
+    else:
+
+        target_bytes = int(
+            target_value * 1024
+        )
+
+    # -----------------------------------------------------
+    # TARGET LIMITS
+    # -----------------------------------------------------
+
+    if target_bytes < 50 * 1024:
+
+        return {
+            "error": "Minimum target size is 50 KB."
+        }, 400
+
+    if target_bytes > MAX_TOTAL_SIZE:
+
+        return {
+            "error": "Target size cannot exceed 50 MB."
+        }, 400
+
+    # -----------------------------------------------------
+    # CREATE TEMP FILES
+    # -----------------------------------------------------
+
+    input_name = (
+        f"{uuid.uuid4().hex}_compress_input.pdf"
+    )
+
+    output_name = (
+        f"{uuid.uuid4().hex}_compressed.pdf"
+    )
+
+    input_path = os.path.join(
+        UPLOAD_FOLDER,
+        input_name
+    )
+
+    output_path = os.path.join(
+        UPLOAD_FOLDER,
+        output_name
+    )
+
+    try:
+
+        # -------------------------------------------------
+        # SAVE ORIGINAL PDF
+        # -------------------------------------------------
+
+        pdf_file.save(input_path)
+
+        original_size = os.path.getsize(
+            input_path
+        )
+
+        # -------------------------------------------------
+        # ALREADY SMALL ENOUGH
+        # -------------------------------------------------
+
+        if original_size <= target_bytes:
+
+            import shutil
+
+            shutil.copy2(
+                input_path,
+                output_path
+            )
+
+            final_size = original_size
+
+            reduction = 0
+
+            return {
+                "success": True,
+                "target_size": target_bytes,
+                "original_size": original_size,
+                "compressed_size": final_size,
+                "reduction": reduction,
+                "target_achieved": True,
+                "message": (
+                    "Your PDF is already smaller "
+                    "than the selected target."
+                ),
+                "download_url":
+                    f"/download-compressed-pdf/"
+                    f"{output_name}"
+            }
+
+        # -------------------------------------------------
+        # COMPRESS PDF
+        # -------------------------------------------------
+
+        with pikepdf.open(
+            input_path
+        ) as pdf:
+
+            pdf.save(
+                output_path,
+                compress_streams=True,
+                recompress_flate=True,
+                object_stream_mode=(
+                    pikepdf.ObjectStreamMode.generate
+                )
+            )
+
+        compressed_size = os.path.getsize(
+            output_path
+        )
+
+        # -------------------------------------------------
+        # IF COMPRESSION FAILED
+        # -------------------------------------------------
+
+        if compressed_size >= original_size:
+
+            import shutil
+
+            shutil.copy2(
+                input_path,
+                output_path
+            )
+
+            compressed_size = original_size
+
+        # -------------------------------------------------
+        # CALCULATE SAVINGS
+        # -------------------------------------------------
+
+        reduction = (
+            (original_size - compressed_size)
+            / original_size
+        ) * 100
+
+        reduction = round(
+            max(reduction, 0),
+            1
+        )
+
+        target_achieved = (
+            compressed_size <= target_bytes
+        )
+
+        if target_achieved:
+
+            message = (
+                "Target size achieved successfully."
+            )
+
+        else:
+
+            message = (
+                "The PDF was compressed, "
+                "but the requested target could "
+                "not be reached with this PDF."
+            )
+
+        return {
+
+            "success": True,
+
+            "target_size":
+                target_bytes,
+
+            "original_size":
+                original_size,
+
+            "compressed_size":
+                compressed_size,
+
+            "reduction":
+                reduction,
+
+            "target_achieved":
+                target_achieved,
+
+            "message":
+                message,
+
+            "download_url":
+                f"/download-compressed-pdf/"
+                f"{output_name}"
+        }
+
+    except Exception as error:
+
+        print(
+            "PDF COMPRESSOR ERROR:",
+            error
+        )
+
+        if os.path.exists(output_path):
+
+            try:
+                os.remove(output_path)
+
+            except OSError:
+                pass
+
+        return {
+            "error":
+                "Could not compress the PDF."
+        }, 500
+
+    finally:
+
+        if os.path.exists(input_path):
+
+            try:
+                os.remove(input_path)
+
+            except OSError:
+                pass
+
+
+# =========================================================
+# DOWNLOAD COMPRESSED PDF
+# =========================================================
+
+@app.route(
+    "/download-compressed-pdf/<filename>"
+)
+def download_compressed_pdf(filename):
+
+    safe_filename = os.path.basename(
+        filename
+    )
+
+    if not safe_filename.endswith(
+        "_compressed.pdf"
+    ):
+
+        return (
+            "Invalid file.",
+            400
+        )
+
+    file_path = os.path.join(
+        UPLOAD_FOLDER,
+        safe_filename
+    )
+
+    if not os.path.isfile(file_path):
+
+        return (
+            "File not found or expired.",
+            404
+        )
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name="compressed.pdf",
+        mimetype="application/pdf"
+    )
+
+
 
 @app.route("/png-to-pdf")
 def png_to_pdf():
@@ -1426,6 +2331,167 @@ def file_too_large(error):
 # =========================================================
 # RUN APPLICATION
 # =========================================================
+# =========================================================
+# PDF MERGER PAGE
+# =========================================================
+
+@app.route("/pdf-merger")
+def pdf_merger():
+    return render_template("pdf-merger.html")
+
+
+# =========================================================
+# MERGE PDF
+# =========================================================
+
+@app.route("/merge-pdf", methods=["POST"])
+def merge_pdf():
+
+    files = request.files.getlist("pdfs")
+
+    if not files:
+        return {
+            "error": "Please select at least one PDF."
+        }, 400
+
+    valid_files = []
+
+    for file in files:
+
+        if not file or not file.filename:
+            continue
+
+        if not file.filename.lower().endswith(".pdf"):
+            return {
+                "error": f"{file.filename} is not a PDF file."
+            }, 400
+
+        valid_files.append(file)
+
+    if len(valid_files) < 2:
+        return {
+            "error": "Please select at least 2 PDF files."
+        }, 400
+
+    if len(valid_files) > 20:
+        return {
+            "error": "Maximum 20 PDF files are allowed."
+        }, 400
+
+    file_id = uuid.uuid4().hex
+
+    output_name = f"{file_id}_merged.pdf"
+
+    output_path = os.path.join(
+        UPLOAD_FOLDER,
+        output_name
+    )
+
+    temp_files = []
+
+    try:
+
+        writer = PdfWriter()
+
+        # -------------------------------------------------
+        # ADD PDF FILES IN UPLOAD ORDER
+        # -------------------------------------------------
+
+        for index, file in enumerate(valid_files):
+
+            temp_name = (
+                f"{file_id}_{index}.pdf"
+            )
+
+            temp_path = os.path.join(
+                UPLOAD_FOLDER,
+                temp_name
+            )
+
+            file.save(temp_path)
+
+            temp_files.append(temp_path)
+
+            writer.append(temp_path)
+
+        # -------------------------------------------------
+        # WRITE MERGED PDF
+        # -------------------------------------------------
+
+        with open(output_path, "wb") as output_file:
+            writer.write(output_file)
+
+        writer.close()
+
+        return {
+            "success": True,
+            "files": len(valid_files),
+            "download_url":
+                f"/download-merged-pdf/{output_name}"
+        }
+
+    except Exception as error:
+
+        print(
+            "PDF MERGER ERROR:",
+            error
+        )
+
+        if os.path.exists(output_path):
+
+            try:
+                os.remove(output_path)
+            except OSError:
+                pass
+
+        return {
+            "error": "Could not merge the PDF files.",
+            "details": str(error)
+        }, 500
+
+    finally:
+
+        # -------------------------------------------------
+        # DELETE TEMP PDF FILES
+        # -------------------------------------------------
+
+        for temp_path in temp_files:
+
+            if os.path.exists(temp_path):
+
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+
+
+# =========================================================
+# DOWNLOAD MERGED PDF
+# =========================================================
+
+@app.route("/download-merged-pdf/<filename>")
+def download_merged_pdf(filename):
+
+    safe_filename = os.path.basename(filename)
+
+    if not safe_filename.endswith("_merged.pdf"):
+        return "Invalid file.", 400
+
+    file_path = os.path.join(
+        UPLOAD_FOLDER,
+        safe_filename
+    )
+
+    if not os.path.isfile(file_path):
+        return "File not found or expired.", 404
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name="merged.pdf",
+        mimetype="application/pdf"
+    )
+
 
 if __name__ == "__main__":
 
